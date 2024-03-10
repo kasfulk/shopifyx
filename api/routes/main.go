@@ -3,7 +3,7 @@ package routes
 import (
 	"shopifyx/configs"
 
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
 )
 
 func RouteRegister(app *fiber.App) {
