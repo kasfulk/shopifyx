@@ -41,3 +41,10 @@ func ErrorServers(m string) (int, map[string]interface{}) {
 		"message": m,
 	}
 }
+
+func ErrorPermission(m string) (int, map[string]interface{}) {
+	return 403, map[string]interface{}{
+		"status":  "Error",
+		"message": m,
+	}
+}

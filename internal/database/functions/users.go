@@ -45,17 +45,16 @@ func (u *User) Register(ctx context.Context, usr interfaces.User) (interfaces.Us
 		return interfaces.User{}, err
 	}
 
-	var name string
-	var username string
-	var id int
-	err = conn.QueryRow(ctx, `SELECT id, name, username FROM users WHERE username = $1`, usr.Username)
+	var result interfaces.User
+
+	err = conn.QueryRow(ctx, `SELECT id, name, username FROM users WHERE username = $1`, usr.Username).Scan(&result.Id, &result.Name, &result.Username)
 
 	if err != nil {
 		return interfaces.User{}, err
 	}
 
 	return interfaces.User{
-		Id:       id,
+		Id:       result.Id,
 		Name:     result.Name,
 		Username: result.Username,
 	}, nil

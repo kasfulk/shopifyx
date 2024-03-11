@@ -5,6 +5,7 @@ import (
 	"shopifyx/api/responses"
 	"shopifyx/internal/database/functions"
 	"shopifyx/internal/database/interfaces"
+	"shopifyx/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -62,13 +63,26 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 	}
 
 	// Register user
-	err := u.Database.Register(ctx.UserContext(), usr)
+	result, err := u.Database.Register(ctx.UserContext(), usr)
 	if err != nil {
-		return err
+		status, response := responses.ErrorServers(err.Error())
+		return ctx.Status(status).JSON(response)
+	}
+
+	// generate access token
+	accessToken, err := utils.GenerateAccessToken(result.Username)
+	if err != nil {
+		status, response := responses.ErrorServers(err.Error())
+		return ctx.Status(status).JSON(response)
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "User registered successfully",
+		"data": fiber.Map{
+			"name":        result.Name,
+			"username":    result.Username,
+			"accessToken": accessToken,
+		},
 	})
 }
 
@@ -89,7 +103,26 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 		return ctx.Status(status).JSON(response)
 	}
 
+	// login user
+	result, err := u.Database.Login(ctx.UserContext(), req.Username, req.Password)
+	if err != nil {
+		status, response := responses.ErrorServers(err.Error())
+		return ctx.Status(status).JSON(response)
+	}
+
+	// generate access token
+	accessToken, err := utils.GenerateAccessToken(result.Username)
+	if err != nil {
+		status, response := responses.ErrorServers(err.Error())
+		return ctx.Status(status).JSON(response)
+	}
+
 	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User logged in successfully",
+		"message": "User registered successfully",
+		"data": fiber.Map{
+			"name":        result.Name,
+			"username":    result.Username,
+			"accessToken": accessToken,
+		},
 	})
 }
