@@ -10,7 +10,7 @@ import (
 )
 
 type User struct {
-	Database functions.User
+	Database *functions.User
 }
 
 func validateUser(req struct {
@@ -62,7 +62,7 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 	}
 
 	// Register user
-	err := u.Database.Register(usr)
+	err := u.Database.Register(ctx.UserContext(), usr)
 	if err != nil {
 		return err
 	}

@@ -6,9 +6,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func UserRoutes(app *fiber.App) {
-	handlers := handlers.User{}
+func UserRoutes(app *fiber.App, userHandler handlers.User) {
 	g := app.Group("/user")
-	g.Post("/register", handlers.Register)
-	g.Post("/login", handlers.Login)
+	g.Post("/register", userHandler.Register)
+	g.Post("/login", userHandler.Login)
 }

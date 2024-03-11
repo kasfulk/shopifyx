@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"shopifyx/configs"
-	"shopifyx/internal/database/connections"
 	"shopifyx/internal/database/interfaces"
 
 	"github.com/jackc/pgx/v5"
@@ -13,26 +12,26 @@ import (
 )
 
 type User struct {
+	config configs.Config
 	dbPool *pgxpool.Pool
 }
 
-func NewUser(dbPool *pgxpool.Pool) *User {
+func NewUser(dbPool *pgxpool.Pool, config configs.Config) *User {
 	return &User{
 		dbPool: dbPool,
+		config: config,
 	}
 }
 
-func (u *User) Register(usr interfaces.User) error {
-	ctx := context.Background()
-	conn, err := connections.NewPgConn()
-	configs := configs.LoadConfig()
+func (u *User) Register(ctx context.Context, usr interfaces.User) error {
+	conn, err := u.dbPool.Acquire(ctx)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer conn.Release()
 
 	// Hash the password before storing it in the database
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(usr.Password), configs.Auth.Salt)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(usr.Password), u.config.BcryptSalt)
 	if err != nil {
 		return err
 	}
@@ -49,13 +48,12 @@ func (u *User) Register(usr interfaces.User) error {
 	return nil
 }
 
-func (u *User) Login(username, password string) (interfaces.User, error) {
-	ctx := context.Background()
-	conn, err := connections.NewPgConn()
+func (u *User) Login(ctx context.Context, username, password string) (interfaces.User, error) {
+	conn, err := u.dbPool.Acquire(ctx)
 	if err != nil {
 		return interfaces.User{}, err
 	}
-	defer conn.Close()
+	defer conn.Release()
 
 	var result interfaces.User
 
