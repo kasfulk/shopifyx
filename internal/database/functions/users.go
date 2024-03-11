@@ -23,17 +23,17 @@ func NewUser(dbPool *pgxpool.Pool, config configs.Config) *User {
 	}
 }
 
-func (u *User) Register(ctx context.Context, usr interfaces.User) error {
+func (u *User) Register(ctx context.Context, usr interfaces.User) (interfaces.User, error) {
 	conn, err := u.dbPool.Acquire(ctx)
 	if err != nil {
-		return err
+		return interfaces.User{}, err
 	}
 	defer conn.Release()
 
 	// Hash the password before storing it in the database
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(usr.Password), u.config.BcryptSalt)
 	if err != nil {
-		return err
+		return interfaces.User{}, err
 	}
 
 	sql := `
@@ -42,10 +42,22 @@ func (u *User) Register(ctx context.Context, usr interfaces.User) error {
 
 	_, err = conn.Exec(ctx, sql, usr.Name, usr.Username, string(hashedPassword))
 	if err != nil {
-		return err
+		return interfaces.User{}, err
 	}
 
-	return nil
+	var result interfaces.User
+
+	err = conn.QueryRow(ctx, `SELECT id, name, username FROM users WHERE username = $1`, usr.Username).Scan(&result.Id, &result.Name, &result.Username)
+
+	if err != nil {
+		return interfaces.User{}, err
+	}
+
+	return interfaces.User{
+		Id:       result.Id,
+		Name:     result.Name,
+		Username: result.Username,
+	}, nil
 }
 
 func (u *User) Login(ctx context.Context, username, password string) (interfaces.User, error) {
