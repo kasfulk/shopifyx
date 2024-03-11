@@ -12,7 +12,7 @@ func UserRoutes(app *fiber.App, userHandler handlers.User) {
 	// or you can do it like this:
 	// app.Group("/login", middleware.JwtSign(app), userHandler.Login)
 
-	g := app.Group("/user")
+	g := app.Group("/v1/user")
 	g.Post("/register", userHandler.Register)
 	g.Post("/login", userHandler.Login)
 }
