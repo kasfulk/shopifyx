@@ -17,20 +17,20 @@ func validateUser(req struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
 }) error {
-	// Check for empty fields
-	if req.Username == "" || req.Name == "" || req.Password == "" {
-		return errors.New("all fields are required")
+	lenUsername := len(req.Username)
+	lenPassword := len(req.Password)
+	lenName := len(req.Name)
+
+	if lenUsername == 0 || lenPassword == 0 || lenName == 0 {
+		return errors.New("username and password are required")
 	}
 
-	// Check length constraints
-	if len(req.Username) < 5 || len(req.Username) > 15 {
-		return errors.New("username length must be between 5 and 15 characters")
+	if lenUsername < 5 || lenPassword < 5 || lenName < 5 {
+		return errors.New("username and password length must be at least 5 characters")
 	}
-	if len(req.Name) < 5 || len(req.Name) > 50 {
-		return errors.New("name length must be between 5 and 50 characters")
-	}
-	if len(req.Password) < 5 || len(req.Password) > 15 {
-		return errors.New("password length must be between 5 and 15 characters")
+
+	if lenUsername > 15 || lenPassword > 15 || lenName > 15 {
+		return errors.New("username and password length cannot exceed 15 characters")
 	}
 
 	return nil
