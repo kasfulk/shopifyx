@@ -90,7 +90,6 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 	// Parse request body
 	var req struct {
 		Username string `json:"username"`
-		Name     string `json:"name"`
 		Password string `json:"password"`
 	}
 	if err := ctx.BodyParser(&req); err != nil {
@@ -98,9 +97,8 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 	}
 
 	// Validate request body
-	if err := validateUser(req); err != nil {
-		status, response := responses.ErrorBadRequests(err.Error())
-		return ctx.Status(status).JSON(response)
+	if req.Username == "" || req.Password == "" {
+		return errors.New("username and password are required")
 	}
 
 	// login user
