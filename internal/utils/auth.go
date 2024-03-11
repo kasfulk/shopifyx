@@ -1,20 +1,18 @@
 package utils
 
 import (
-	"shopifyx/configs"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
 // GenerateAccessToken generates a JWT access token for the provided username.
-func GenerateAccessToken(username string) (string, error) {
-	configs := configs.LoadConfig()
+func GenerateAccessToken(username string, secret string) (string, error) {
 	var (
 		// Define a secret key for signing the JWT token.
 		// Ensure to keep this key secure and don't expose it.
 		// You may want to use an environment variable to store it.
-		secretKey = []byte(configs.Auth.Secret)
+		secretKey = []byte(secret)
 	)
 	// Define the token expiration time.
 	expirationTime := time.Now().Add(2 * time.Minute) // 2 minutes for testing (adjust as needed)

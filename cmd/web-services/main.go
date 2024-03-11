@@ -1,12 +1,14 @@
 package webservices
 
 import (
+	"context"
 	"log"
-	"time"
 
+	"shopifyx/api/handlers"
 	"shopifyx/api/responses"
 	"shopifyx/api/routes"
 	"shopifyx/configs"
+	"shopifyx/internal/database/connections"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -16,17 +18,25 @@ import (
 
 func Run() {
 	app := fiber.New()
-	loc, err := time.LoadLocation("Asia/Makassar")
-	if err != nil {
-		app.Use(func(c *fiber.Ctx) error {
-			return responses.ReturnTheResponse(c, true, int(500), "Can not init the timezone", nil)
-		})
-	}
-	time.Local = loc // -> this is setting the global timezone
 
-	config := configs.LoadConfig()
+	config, err := configs.LoadConfig()
 	if err != nil {
 		log.Fatal("Cannot load config:", err)
+	}
+
+	dbPool, err := connections.NewPgConn(config)
+	if err != nil {
+		log.Fatalf("failed open connection to db: %v", err)
+	}
+
+	err = dbPool.Ping(context.Background())
+	if err != nil {
+		log.Fatalf("FAILED PING TO DB: %v", err)
+	}
+
+	deps := handlers.Dependencies{
+		Cfg:    config,
+		DbPool: dbPool,
 	}
 
 	// load Middlewares
@@ -35,7 +45,7 @@ func Run() {
 	app.Use(cors.New())
 
 	// register route in another package
-	routes.RouteRegister(app)
+	routes.RouteRegister(app, deps)
 
 	// handle unavailable route
 	app.Use(func(c *fiber.Ctx) error {
@@ -43,5 +53,5 @@ func Run() {
 	})
 
 	// Here we go!
-	log.Fatalln(app.Listen(config.Server.Host + ":" + config.Server.Port))
+	log.Fatalln(app.Listen(":8000"))
 }

@@ -1,17 +1,20 @@
 package routes
 
 import (
-	"shopifyx/configs"
+	"shopifyx/api/handlers"
+	"shopifyx/internal/database/functions"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func RouteRegister(app *fiber.App) {
-	config := configs.LoadConfig()
-	ver := app.Group("/" + config.Server.Version)
-
-	ver.Get("/ping", func(c *fiber.Ctx) error {
+func RouteRegister(app *fiber.App, deps handlers.Dependencies) {
+	app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
 	})
-	UserRoutes(app)
+
+	userHandler := handlers.User{
+		Database: functions.NewUser(deps.DbPool, deps.Cfg),
+	}
+
+	UserRoutes(app, userHandler)
 }
