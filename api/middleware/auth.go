@@ -11,7 +11,11 @@ func JwtSign(app *fiber.App) fiber.Handler {
 	config, err := configs.LoadConfig()
 	if err != nil {
 		// Handling error when loading config, you might want to return an error here
-		panic(err) // or handle in a way suitable for your application
+		return func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Internal Server Error",
+			})
+		}
 	}
 
 	// Initialize JWT middleware
