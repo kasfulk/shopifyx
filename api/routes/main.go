@@ -13,4 +13,5 @@ func RouteRegister(app *fiber.App) {
 	ver.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("pong")
 	})
+	UserRoutes(app)
 }

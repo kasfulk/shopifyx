@@ -2,6 +2,7 @@ package configs
 
 import (
 	"os"
+	"strconv"
 )
 
 type Server struct {
@@ -18,9 +19,15 @@ type Database struct {
 	Pass string
 }
 
+type Auth struct {
+	Secret string
+	Salt   int
+}
+
 type Config struct {
 	Server   *Server
 	Database *Database
+	Auth     *Auth
 }
 
 func LoadConfig() *Config {
@@ -34,8 +41,13 @@ func LoadConfig() *Config {
 
 	var (
 		host    = "0.0.0.0"
-		port    = "5000"
+		port    = "8000"
 		version = "v1"
+	)
+
+	var (
+		secret = "secret"
+		salt   = int(8)
 	)
 
 	if os.Getenv("SYSTEMD_DB_NAME") != "" {
@@ -52,6 +64,11 @@ func LoadConfig() *Config {
 		version = os.Getenv("SYSTEM_APP_VERSION")
 	}
 
+	if os.Getenv("SYSTEMD_APP_AUTH_SECRET") != "" {
+		secret = os.Getenv("SYSTEMD_APP_AUTH_SECRET")
+		salt, _ = strconv.Atoi(os.Getenv("SYSTEMD_APP_AUTH_SALT"))
+	}
+
 	var (
 		config = &Config{
 			Database: &Database{
@@ -65,6 +82,10 @@ func LoadConfig() *Config {
 				Host:    host,
 				Port:    port,
 				Version: version,
+			},
+			Auth: &Auth{
+				Secret: secret,
+				Salt:   salt,
 			},
 		}
 	)
