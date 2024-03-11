@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"shopifyx/api/responses"
 	"shopifyx/internal/database/functions"
 	"shopifyx/internal/database/interfaces"
 
@@ -49,7 +50,8 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 
 	// Validate request body
 	if err := validateUser(req); err != nil {
-		return err
+		status, response := responses.ErrorBadRequests(err.Error())
+		return ctx.Status(status).JSON(response)
 	}
 
 	// Create user object
