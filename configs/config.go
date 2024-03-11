@@ -29,7 +29,7 @@ func LoadConfig() *Config {
 		dbpassword = "postgres"
 		dbport     = "5432"
 		dbhost     = "localhost"
-		dbname     = "postgres"
+		dbname     = "shopifyx"
 	)
 
 	var (
