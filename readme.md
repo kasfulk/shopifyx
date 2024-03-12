@@ -17,6 +17,7 @@ export DB_PORT=5432
 export DB_HOST=localhost
 export DB_USERNAME=postgres
 export DB_PASSWORD=postgres
+epxort APP_PORT=8000
 export PROMETHEUS_ADDRESS=comingsoon
 export JWT_SECRET=secretjwt
 export BCRYPT_SALT=8 # jangan pake 8 di prod! pake > 10
