@@ -1,6 +1,6 @@
 create table if not exists products(
-    id uuid not null default uuid_generate_v4() primary key,
-    user_id uuid not null references users(id) on delete cascade,
+    id bigserial primary key,
+    user_id bigserial references users(id) on delete cascade,
     "name" varchar not null,
     price int not null default 0 check(price >= 0),
     image_url varchar not null,
