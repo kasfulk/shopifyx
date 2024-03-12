@@ -53,5 +53,5 @@ func Run() {
 	})
 
 	// Here we go!
-	log.Fatalln(app.Listen(":8000"))
+	log.Fatalln(app.Listen(config.APPPort))
 }
