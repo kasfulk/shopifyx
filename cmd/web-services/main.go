@@ -8,7 +8,7 @@ import (
 	"shopifyx/api/responses"
 	"shopifyx/api/routes"
 	"shopifyx/configs"
-	"shopifyx/internal/database/connections"
+	"shopifyx/db/connections"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"

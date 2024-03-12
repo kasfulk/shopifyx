@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"shopifyx/configs"
-	"shopifyx/internal/database/interfaces"
+	"shopifyx/db/interfaces"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

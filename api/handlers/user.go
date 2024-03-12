@@ -3,8 +3,8 @@ package handlers
 import (
 	"errors"
 	"shopifyx/api/responses"
-	"shopifyx/internal/database/functions"
-	"shopifyx/internal/database/interfaces"
+	"shopifyx/db/functions"
+	"shopifyx/db/interfaces"
 	"shopifyx/internal/utils"
 
 	"github.com/gofiber/fiber/v2"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"shopifyx/internal/database/functions"
-	"shopifyx/internal/database/interfaces"
+	"shopifyx/db/functions"
+	"shopifyx/db/interfaces"
 	"strconv"
 
 	validation "github.com/go-ozzo/ozzo-validation"
