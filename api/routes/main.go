@@ -2,7 +2,7 @@ package routes
 
 import (
 	"shopifyx/api/handlers"
-	"shopifyx/internal/database/functions"
+	"shopifyx/db/functions"
 
 	"github.com/gofiber/fiber/v2"
 )

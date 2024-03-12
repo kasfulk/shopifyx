@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"shopifyx/configs"
-	"shopifyx/internal/database/interfaces"
+	"shopifyx/db/entity"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,17 +23,17 @@ func NewUser(dbPool *pgxpool.Pool, config configs.Config) *User {
 	}
 }
 
-func (u *User) Register(ctx context.Context, usr interfaces.User) (interfaces.User, error) {
+func (u *User) Register(ctx context.Context, usr entity.User) (entity.User, error) {
 	conn, err := u.dbPool.Acquire(ctx)
 	if err != nil {
-		return interfaces.User{}, err
+		return entity.User{}, err
 	}
 	defer conn.Release()
 
 	// Hash the password before storing it in the database
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(usr.Password), u.config.BcryptSalt)
 	if err != nil {
-		return interfaces.User{}, err
+		return entity.User{}, err
 	}
 
 	sql := `
@@ -42,32 +42,32 @@ func (u *User) Register(ctx context.Context, usr interfaces.User) (interfaces.Us
 
 	_, err = conn.Exec(ctx, sql, usr.Name, usr.Username, string(hashedPassword))
 	if err != nil {
-		return interfaces.User{}, err
+		return entity.User{}, err
 	}
 
-	var result interfaces.User
+	var result entity.User
 
 	err = conn.QueryRow(ctx, `SELECT id, name, username FROM users WHERE username = $1`, usr.Username).Scan(&result.Id, &result.Name, &result.Username)
 
 	if err != nil {
-		return interfaces.User{}, err
+		return entity.User{}, err
 	}
 
-	return interfaces.User{
+	return entity.User{
 		Id:       result.Id,
 		Name:     result.Name,
 		Username: result.Username,
 	}, nil
 }
 
-func (u *User) Login(ctx context.Context, username, password string) (interfaces.User, error) {
+func (u *User) Login(ctx context.Context, username, password string) (entity.User, error) {
 	conn, err := u.dbPool.Acquire(ctx)
 	if err != nil {
-		return interfaces.User{}, err
+		return entity.User{}, err
 	}
 	defer conn.Release()
 
-	var result interfaces.User
+	var result entity.User
 
 	err = conn.QueryRow(ctx, `SELECT id, name, username, password FROM users WHERE username = $1`, username).Scan(
 		&result.Id, &result.Name, &result.Username, &result.Password,

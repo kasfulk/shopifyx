@@ -13,6 +13,8 @@ type Config struct {
 	DbUsername string
 	DbPassword string
 
+	APPPort string
+
 	PrometheusAddress string
 
 	JWTSecret  string
@@ -31,6 +33,8 @@ func LoadConfig() (Config, error) {
 		DbUsername: os.Getenv("DB_USERNAME"),
 		DbPassword: os.Getenv("DB_PASSWORD"),
 
+		APPPort: os.Getenv("APP_PORT"),
+
 		PrometheusAddress: os.Getenv("PROMETHEUS_ADDRESS"),
 
 		JWTSecret: os.Getenv("JWT_SECRET"),
@@ -43,6 +47,10 @@ func LoadConfig() (Config, error) {
 	salt, err := strconv.Atoi(os.Getenv("BCRYPT_SALT"))
 	if err != nil {
 		return Config{}, fmt.Errorf("failed get bcrypt salt %v", err)
+	}
+
+	if os.Getenv("APP_PORT") == "" {
+		config.APPPort = "8000"
 	}
 
 	config.BcryptSalt = salt
