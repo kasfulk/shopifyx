@@ -3,8 +3,8 @@ package handlers
 import (
 	"errors"
 	"shopifyx/api/responses"
+	"shopifyx/db/entity"
 	"shopifyx/db/functions"
-	"shopifyx/db/interfaces"
 	"shopifyx/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -56,7 +56,7 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 	}
 
 	// Create user object
-	usr := interfaces.User{
+	usr := entity.User{
 		Username: req.Username,
 		Name:     req.Name,
 		Password: req.Password,

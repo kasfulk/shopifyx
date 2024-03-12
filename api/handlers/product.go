@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"shopifyx/db/entity"
 	"shopifyx/db/functions"
-	"shopifyx/db/interfaces"
 	"strconv"
 
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -76,7 +76,7 @@ func (p *Product) BuyProduct(c *fiber.Ctx) error {
 			JSON("failed parse productId")
 	}
 
-	payment, err := p.Database.Buy(c.UserContext(), interfaces.Payment{
+	payment, err := p.Database.Buy(c.UserContext(), entity.Payment{
 		ProductId:            productId,
 		BankAccountId:        bankAccountId,
 		PaymentProofImageUrl: payload.PaymentProofImageUrl,
