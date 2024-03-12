@@ -1,3 +1,11 @@
+# Installation
+```
+go mod download
+```
+
+# How to run this project
+In development stage you can run this project using `comstrek/air`, install `comstrek/air` before running this project. After that, run this project using `air` command.
+
 # ENV VAR
 
 ## SHOPIFYx
