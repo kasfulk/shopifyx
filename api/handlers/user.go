@@ -119,7 +119,7 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 	}
 
 	if err.Error() == "INVALID_PASSWORD" {
-		status, response := responses.ErrorUnauthorized(err.Error())
+		status, response := responses.ErrorBadRequests(err.Error())
 		return ctx.Status(status).JSON(response)
 	}
 
@@ -130,8 +130,8 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 		return ctx.Status(status).JSON(response)
 	}
 
-	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User login successfully",
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "User logged successfully",
 		"data": fiber.Map{
 			"name":        result.Name,
 			"username":    result.Username,

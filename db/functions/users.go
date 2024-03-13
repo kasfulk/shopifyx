@@ -36,10 +36,10 @@ func (u *User) Register(ctx context.Context, usr entity.User) (entity.User, erro
 		return entity.User{}, err
 	}
 
-	var queryResult entity.User
+	var existingId string
 
-	err = conn.QueryRow(ctx, `SELECT id, name, username FROM users WHERE username = $1`, usr.Username).Scan(&queryResult.Id, &queryResult.Name, &queryResult.Username)
-	if queryResult.Id != "" {
+	err = conn.QueryRow(ctx, `SELECT id FROM users WHERE username = $1`, usr.Username).Scan(&existingId)
+	if existingId != "" {
 		return entity.User{}, errors.New("EXISTING_USERNAME")
 	}
 
