@@ -48,3 +48,10 @@ func ErrorPermission(m string) (int, map[string]interface{}) {
 		"message": m,
 	}
 }
+
+func ErrorUnauthorized(m string) (int, map[string]interface{}) {
+	return 401, map[string]interface{}{
+		"status":  "Error",
+		"message": m,
+	}
+}

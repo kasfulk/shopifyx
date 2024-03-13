@@ -69,6 +69,11 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 		return ctx.Status(status).JSON(response)
 	}
 
+	if err.Error() == "EXISTING_USERNAME" {
+		status, response := responses.ErrorConflict(err.Error())
+		return ctx.Status(status).JSON(response)
+	}
+
 	// generate access token
 	accessToken, err := utils.GenerateAccessToken(result.Username)
 	if err != nil {
@@ -108,6 +113,16 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 		return ctx.Status(status).JSON(response)
 	}
 
+	if err.Error() == "USER_NOT_FOUND" {
+		status, response := responses.ErrorNotFound(err.Error())
+		return ctx.Status(status).JSON(response)
+	}
+
+	if err.Error() == "INVALID_PASSWORD" {
+		status, response := responses.ErrorUnauthorized(err.Error())
+		return ctx.Status(status).JSON(response)
+	}
+
 	// generate access token
 	accessToken, err := utils.GenerateAccessToken(result.Username)
 	if err != nil {
@@ -116,7 +131,7 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User registered successfully",
+		"message": "User login successfully",
 		"data": fiber.Map{
 			"name":        result.Name,
 			"username":    result.Username,
