@@ -18,6 +18,12 @@ type Product struct {
 	Database *functions.Product
 }
 
+type GetProductResponse struct {
+}
+
+type GetProductRequest struct {
+}
+
 func (p *Product) BuyProduct(c *fiber.Ctx) error {
 	var payload struct {
 		ProductId            string `json:"productId"`
@@ -96,4 +102,8 @@ func (p *Product) BuyProduct(c *fiber.Ctx) error {
 		"message": "payment processed successfully",
 		"data":    payment,
 	})
+}
+
+func (p *Product) GetProduct(c *fiber.Ctx) error {
+	return nil
 }
