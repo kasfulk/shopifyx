@@ -36,14 +36,18 @@ func (u *User) Register(ctx context.Context, usr entity.User) (entity.User, erro
 		return entity.User{}, err
 	}
 
+	var existingId string
+
+	err = conn.QueryRow(ctx, `SELECT id FROM users WHERE username = $1`, usr.Username).Scan(&existingId)
+	if existingId != "" {
+		return entity.User{}, errors.New("EXISTING_USERNAME")
+	}
+
 	sql := `
 		INSERT INTO users (name, username, password) VALUES ($1, $2, $3)
 	`
 
 	_, err = conn.Exec(ctx, sql, usr.Name, usr.Username, string(hashedPassword))
-	if err != nil {
-		return entity.User{}, err
-	}
 
 	var result entity.User
 
@@ -73,7 +77,7 @@ func (u *User) Login(ctx context.Context, username, password string) (entity.Use
 		&result.Id, &result.Name, &result.Username, &result.Password,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return result, errors.New("user not found")
+		return result, errors.New("USER_NOT_FOUND")
 	}
 	if err != nil {
 		return result, err
@@ -81,7 +85,7 @@ func (u *User) Login(ctx context.Context, username, password string) (entity.Use
 
 	// Compare the provided password with the hashed password from the database
 	if err := bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(password)); err != nil {
-		return result, errors.New("invalid password")
+		return result, errors.New("INVALID_PASSWORD")
 	}
 
 	return result, nil
