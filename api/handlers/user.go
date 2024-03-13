@@ -38,6 +38,28 @@ func validateUser(req struct {
 	return nil
 }
 
+func validateLogin(req struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}) error {
+	lenUsername := len(req.Username)
+	lenPassword := len(req.Password)
+
+	if lenUsername == 0 || lenPassword == 0 {
+		return errors.New("username and password are required")
+	}
+
+	if lenUsername < 5 || lenPassword < 5 {
+		return errors.New("username and password length must be at least 5 characters")
+	}
+
+	if lenUsername > 15 || lenPassword > 15 {
+		return errors.New("username and password length cannot exceed 15 characters")
+	}
+
+	return nil
+}
+
 func (u *User) Register(ctx *fiber.Ctx) error {
 	// Parse request body
 	var req struct {
@@ -101,9 +123,9 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	// Validate request body
-	if req.Username == "" || req.Password == "" {
-		return errors.New("username and password are required")
+	if err := validateLogin(req); err != nil {
+		status, response := responses.ErrorBadRequests(err.Error())
+		return ctx.Status(status).JSON(response)
 	}
 
 	// login user
