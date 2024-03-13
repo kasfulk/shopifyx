@@ -87,12 +87,12 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 	// Register user
 	result, err := u.Database.Register(ctx.UserContext(), usr)
 	if err != nil {
-		status, response := responses.ErrorServers(err.Error())
-		return ctx.Status(status).JSON(response)
-	}
+		if err.Error() == "EXISTING_USERNAME" {
+			status, response := responses.ErrorConflict(err.Error())
+			return ctx.Status(status).JSON(response)
+		}
 
-	if err.Error() == "EXISTING_USERNAME" {
-		status, response := responses.ErrorConflict(err.Error())
+		status, response := responses.ErrorServers(err.Error())
 		return ctx.Status(status).JSON(response)
 	}
 
@@ -131,17 +131,17 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 	// login user
 	result, err := u.Database.Login(ctx.UserContext(), req.Username, req.Password)
 	if err != nil {
+		if err.Error() == "USER_NOT_FOUND" {
+			status, response := responses.ErrorNotFound(err.Error())
+			return ctx.Status(status).JSON(response)
+		}
+
+		if err.Error() == "INVALID_PASSWORD" {
+			status, response := responses.ErrorBadRequests(err.Error())
+			return ctx.Status(status).JSON(response)
+		}
+
 		status, response := responses.ErrorServers(err.Error())
-		return ctx.Status(status).JSON(response)
-	}
-
-	if err.Error() == "USER_NOT_FOUND" {
-		status, response := responses.ErrorNotFound(err.Error())
-		return ctx.Status(status).JSON(response)
-	}
-
-	if err.Error() == "INVALID_PASSWORD" {
-		status, response := responses.ErrorBadRequests(err.Error())
 		return ctx.Status(status).JSON(response)
 	}
 
