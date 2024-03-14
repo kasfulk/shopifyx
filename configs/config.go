@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"time"
 )
 
 type Config struct {
@@ -18,9 +17,8 @@ type Config struct {
 
 	PrometheusAddress string
 
-	JWTSecret                   string
-	TokenExpirationTimeInMinute time.Duration
-	BcryptSalt                  int
+	JWTSecret  string
+	BcryptSalt int
 
 	S3ID        string
 	S3SecretKey string
@@ -28,8 +26,6 @@ type Config struct {
 }
 
 func LoadConfig() (Config, error) {
-	tokenExpirationTimeInMinute, _ := strconv.Atoi(os.Getenv("TOKEN_EXPIRATION_TIME_IN_MINUTE"))
-
 	config := Config{
 		DbName:     os.Getenv("DB_NAME"),
 		DbHost:     os.Getenv("DB_HOST"),
@@ -41,8 +37,7 @@ func LoadConfig() (Config, error) {
 
 		PrometheusAddress: os.Getenv("PROMETHEUS_ADDRESS"),
 
-		JWTSecret:                   os.Getenv("JWT_SECRET"),
-		TokenExpirationTimeInMinute: time.Duration(tokenExpirationTimeInMinute),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 
 		S3ID:        os.Getenv("S3_ID"),
 		S3SecretKey: os.Getenv("S3_SECRET_KEY"),

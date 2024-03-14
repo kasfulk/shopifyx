@@ -20,7 +20,7 @@ func GenerateAccessToken(username string) (string, error) {
 		secretKey = []byte(config.JWTSecret)
 	)
 	// Define the token expiration time.
-	expirationTime := time.Now().Add(config.TokenExpirationTimeInMinute * time.Minute) // 2 minutes for testing (adjust as needed)
+	expirationTime := time.Now().Add(30 * time.Minute) // 30 minutes for testing (adjust as needed)
 
 	// Create a new token object with the appropriate claims.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
