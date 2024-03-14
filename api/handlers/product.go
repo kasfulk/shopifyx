@@ -145,7 +145,7 @@ func (p *Product) AddProduct(c *fiber.Ctx) error {
 
 	_, err = p.UserDatabase.GetUserById(c.UserContext(), userIDClaim)
 	if err != nil {
-		return p.handleError(c, fiber.ErrForbidden)
+		return p.handleError(c, fiber.ErrUnauthorized)
 	}
 
 	var payload ProductPayload
@@ -191,7 +191,7 @@ func (p *Product) UpdateProduct(c *fiber.Ctx) error {
 
 	_, err = p.UserDatabase.GetUserById(c.UserContext(), userIDClaim)
 	if err != nil {
-		return p.handleError(c, fiber.ErrForbidden)
+		return p.handleError(c, fiber.ErrUnauthorized)
 	}
 
 	var payload ProductPayload
@@ -207,6 +207,15 @@ func (p *Product) UpdateProduct(c *fiber.Ctx) error {
 	productID, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		return p.handleError(c, errors.New("failed parse product id"))
+	}
+
+	productData, err := p.Database.FindByID(c.UserContext(), productID)
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	if productData.UserID != userID {
+		return p.handleError(c, fiber.ErrForbidden)
 	}
 
 	product, err := p.Database.Update(c.UserContext(), entity.Product{
@@ -253,6 +262,8 @@ func (p *Product) handleError(c *fiber.Ctx, err error) error {
 		strings.Contains(err.Error(), "failed parse payload"):
 		status, response := responses.ErrorBadRequests(err.Error())
 		return c.Status(status).JSON(response)
+	case errors.Is(err, fiber.ErrUnauthorized):
+		return fiber.ErrUnauthorized
 	case errors.Is(err, fiber.ErrForbidden):
 		return fiber.ErrForbidden
 	case errors.Is(err, functions.ErrNoRow):

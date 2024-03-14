@@ -169,11 +169,36 @@ func (p *Product) Update(ctx context.Context, product entity.Product) (entity.Pr
 		product.UserID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+
 			return entity.Product{}, ErrNoRow
 		} else if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			return entity.Product{}, ErrProductNameDuplicate
 		}
 		return entity.Product{}, fmt.Errorf("failed update product: %v", err)
+	}
+
+	return product, nil
+}
+
+func (p *Product) FindByID(ctx context.Context, productID int) (entity.Product, error) {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+
+	defer conn.Release()
+
+	var product entity.Product
+
+	err = conn.QueryRow(ctx, `SELECT id, user_id, name, price, image_url, stock, condition, tags, is_purchaseable FROM products WHERE id = $1`, productID).Scan(
+		&product.ID, &product.UserID, &product.Name, &product.Price, &product.ImageUrl, &product.Stock, &product.Condition, &product.Tags, &product.IsPurchaseable,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return entity.Product{}, ErrNoRow
+	}
+
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed get product: %v", err)
 	}
 
 	return product, nil
