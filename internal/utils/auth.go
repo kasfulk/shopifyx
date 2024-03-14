@@ -8,7 +8,7 @@ import (
 )
 
 // GenerateAccessToken generates a JWT access token for the provided username.
-func GenerateAccessToken(username string) (string, error) {
+func GenerateAccessToken(username string, userID string) (string, error) {
 	config, err := configs.LoadConfig()
 	if err != nil {
 		return "", err
@@ -25,6 +25,7 @@ func GenerateAccessToken(username string) (string, error) {
 	// Create a new token object with the appropriate claims.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
+		"user_id":  userID,
 		"exp":      expirationTime.Unix(),
 	})
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v2"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 func JWTAuth() fiber.Handler {
@@ -17,9 +18,17 @@ func JWTAuth() fiber.Handler {
 		},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			if err != nil {
-				return fiber.ErrUnauthorized
+				return fiber.ErrForbidden
 			}
 
+			return c.Next()
+		},
+		SuccessHandler: func(c *fiber.Ctx) error {
+			token := c.Locals("user").(*jwt.Token)
+			claims := token.Claims.(jwt.MapClaims)
+
+			userID := claims["user_id"].(string)
+			c.Locals("user_id", userID)
 			return c.Next()
 		},
 	})
