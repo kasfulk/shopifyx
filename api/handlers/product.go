@@ -18,7 +18,8 @@ import (
 
 type (
 	Product struct {
-		Database *functions.Product
+		Database     *functions.Product
+		UserDatabase *functions.User
 	}
 
 	AddProductPayload struct {
@@ -136,18 +137,23 @@ func (p *Product) BuyProduct(c *fiber.Ctx) error {
 }
 
 func (p *Product) AddProduct(c *fiber.Ctx) error {
+	userIDClaim := c.Locals("user_id").(string)
+	userID, err := strconv.Atoi(userIDClaim)
+	if err != nil {
+		return p.handleError(c, fiber.ErrForbidden)
+	}
+
+	_, err = p.UserDatabase.GetUserById(c.UserContext(), userIDClaim)
+	if err != nil {
+		return p.handleError(c, fiber.ErrForbidden)
+	}
+
 	var payload AddProductPayload
 	if err := c.BodyParser(&payload); err != nil {
 		return p.handleError(c, errors.New(fmt.Sprintf("failed parse payload: %v", err.Error())))
 	}
 
-	err := payload.Validate()
-	if err != nil {
-		return p.handleError(c, err)
-	}
-
-	userIDClaim := c.Locals("user_id").(string)
-	userID, err := strconv.Atoi(userIDClaim)
+	err = payload.Validate()
 	if err != nil {
 		return p.handleError(c, err)
 	}
@@ -195,6 +201,8 @@ func (p *Product) handleError(c *fiber.Ctx, err error) error {
 	case errors.Is(err, functions.ErrProductNameDuplicate):
 		status, response := responses.ErrorBadRequests(err.Error())
 		return c.Status(status).JSON(response)
+	case errors.Is(err, fiber.ErrForbidden):
+		return fiber.ErrForbidden
 	default:
 		validationErrors, ok := err.(validation.Errors)
 		if !ok {
