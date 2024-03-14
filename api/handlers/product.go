@@ -50,17 +50,17 @@ func (app ProductPayload) Validate() error {
 		// Name cannot be empty, and the length must be between 5 and 60.
 		validation.Field(&app.Name, validation.Required, validation.Length(5, 60)),
 		// Price cannot be empty, and should be greater than 0.
-		validation.Field(&app.Price, validation.Required, validation.Min(0)),
+		validation.Field(&app.Price, validation.NotNil, validation.Min(0)),
 		// ImageURL cannot be empty and should be in a valid URL format.
 		validation.Field(&app.ImageURL, validation.Required, is.URL),
 		// Stock cannot be empty, and should be greater than 0.
-		validation.Field(&app.Stock, validation.Required, validation.Min(0)),
+		validation.Field(&app.Stock, validation.NotNil, validation.Min(0)),
 		// Condition cannot be empty, and should be either "new" or "second".
 		validation.Field(&app.Condition, validation.Required, validation.In("new", "second")),
 		// Tags cannot be empty, and should have at least 0 items.
 		validation.Field(&app.Tags, validation.Required),
 		// IsPurchaseable cannot be empty.
-		validation.Field(&app.IsPurchaseable, validation.Required),
+		validation.Field(&app.IsPurchaseable, validation.NotNil),
 	)
 }
 
