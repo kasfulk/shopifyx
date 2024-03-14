@@ -22,7 +22,7 @@ type (
 		UserDatabase *functions.User
 	}
 
-	AddProductPayload struct {
+	ProductPayload struct {
 		Name           string   `json:"name"`
 		Price          int      `json:"price"`
 		ImageURL       string   `json:"imageUrl"`
@@ -32,7 +32,7 @@ type (
 		IsPurchaseable bool     `json:"isPurchaseable"`
 	}
 
-	AddProductResponse struct {
+	ProductResponse struct {
 		ID             string   `json:"id"`
 		UserID         string   `json:"userId"`
 		Name           string   `json:"name"`
@@ -45,7 +45,7 @@ type (
 	}
 )
 
-func (app AddProductPayload) Validate() error {
+func (app ProductPayload) Validate() error {
 	return validation.ValidateStruct(&app,
 		// Name cannot be empty, and the length must be between 5 and 60.
 		validation.Field(&app.Name, validation.Required, validation.Length(5, 60)),
@@ -148,7 +148,7 @@ func (p *Product) AddProduct(c *fiber.Ctx) error {
 		return p.handleError(c, fiber.ErrForbidden)
 	}
 
-	var payload AddProductPayload
+	var payload ProductPayload
 	if err := c.BodyParser(&payload); err != nil {
 		return p.handleError(c, errors.New(fmt.Sprintf("failed parse payload: %v", err.Error())))
 	}
@@ -182,8 +182,59 @@ func (p *Product) AddProduct(c *fiber.Ctx) error {
 
 }
 
-func (p *Product) convertProductEntityToResponse(product entity.Product) AddProductResponse {
-	return AddProductResponse{
+func (p *Product) UpdateProduct(c *fiber.Ctx) error {
+	userIDClaim := c.Locals("user_id").(string)
+	userID, err := strconv.Atoi(userIDClaim)
+	if err != nil {
+		return p.handleError(c, fiber.ErrForbidden)
+	}
+
+	_, err = p.UserDatabase.GetUserById(c.UserContext(), userIDClaim)
+	if err != nil {
+		return p.handleError(c, fiber.ErrForbidden)
+	}
+
+	var payload ProductPayload
+	if err := c.BodyParser(&payload); err != nil {
+		return p.handleError(c, errors.New(fmt.Sprintf("failed parse payload: %v", err.Error())))
+	}
+
+	err = payload.Validate()
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	productID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return p.handleError(c, errors.New("failed parse product id"))
+	}
+
+	product, err := p.Database.Update(c.UserContext(), entity.Product{
+		ID:             productID,
+		UserID:         userID,
+		Name:           payload.Name,
+		Price:          payload.Price,
+		ImageUrl:       payload.ImageURL,
+		Stock:          payload.Stock,
+		Condition:      payload.Condition,
+		Tags:           payload.Tags,
+		IsPurchaseable: payload.IsPurchaseable,
+	})
+
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	result := p.convertProductEntityToResponse(product)
+
+	return c.Status(http.StatusOK).JSON(map[string]interface{}{
+		"message": "product updated successfully",
+		"data":    result,
+	})
+}
+
+func (p *Product) convertProductEntityToResponse(product entity.Product) ProductResponse {
+	return ProductResponse{
 		ID:             strconv.Itoa(product.ID),
 		UserID:         strconv.Itoa(product.UserID),
 		Name:           product.Name,
@@ -198,11 +249,15 @@ func (p *Product) convertProductEntityToResponse(product entity.Product) AddProd
 
 func (p *Product) handleError(c *fiber.Ctx, err error) error {
 	switch {
-	case errors.Is(err, functions.ErrProductNameDuplicate):
+	case errors.Is(err, functions.ErrProductNameDuplicate),
+		strings.Contains(err.Error(), "failed parse payload"):
 		status, response := responses.ErrorBadRequests(err.Error())
 		return c.Status(status).JSON(response)
 	case errors.Is(err, fiber.ErrForbidden):
 		return fiber.ErrForbidden
+	case errors.Is(err, functions.ErrNoRow):
+		status, response := responses.ErrorNotFound("no product found")
+		return c.Status(status).JSON(response)
 	default:
 		validationErrors, ok := err.(validation.Errors)
 		if !ok {

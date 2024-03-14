@@ -143,3 +143,38 @@ func (p *Product) Add(ctx context.Context, product entity.Product) (entity.Produ
 
 	return product, nil
 }
+
+func (p *Product) Update(ctx context.Context, product entity.Product) (entity.Product, error) {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+
+	defer conn.Release()
+
+	sql := `
+		update products set name = $1, price = $2, image_url = $3, stock = $4, condition = $5, tags = $6, is_purchaseable = $7 
+		where id = $8 and user_id = $9
+	`
+
+	_, err = conn.Exec(ctx, sql,
+		product.Name,
+		product.Price,
+		product.ImageUrl,
+		product.Stock,
+		product.Condition,
+		product.Tags,
+		product.IsPurchaseable,
+		product.ID,
+		product.UserID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Product{}, ErrNoRow
+		} else if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			return entity.Product{}, ErrProductNameDuplicate
+		}
+		return entity.Product{}, fmt.Errorf("failed update product: %v", err)
+	}
+
+	return product, nil
+}
