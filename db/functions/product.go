@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"shopifyx/db/entity"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -100,4 +101,45 @@ func (p *Product) Buy(ctx context.Context, payment entity.Payment) (entity.Payme
 	tx.Commit(ctx)
 
 	return payment, nil
+}
+
+func (p *Product) Add(ctx context.Context, product entity.Product) (entity.Product, error) {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+
+	defer conn.Release()
+
+	sql := `
+		insert into products (user_id, name, price, image_url, stock, condition, tags, is_purchaseable) 
+		values ($1, $2, $3, $4, $5, $6, $7, $8)
+	`
+
+	_, err = conn.Exec(ctx, sql,
+		product.UserID,
+		product.Name,
+		product.Price,
+		product.ImageUrl,
+		product.Stock,
+		product.Condition,
+		product.Tags,
+		product.IsPurchaseable)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			return entity.Product{}, ErrProductNameDuplicate
+		}
+		return entity.Product{}, fmt.Errorf("failed insert product: %v", err)
+	}
+
+	var result entity.Product
+
+	err = conn.QueryRow(ctx, `SELECT id FROM products WHERE name = $1`, product.Name).Scan(&result.ID)
+
+	if err != nil {
+		return entity.Product{}, err
+	}
+	product.ID = result.ID
+
+	return product, nil
 }
