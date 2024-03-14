@@ -28,7 +28,7 @@ func JWTAuth() fiber.Handler {
 			claims := token.Claims.(jwt.MapClaims)
 
 			userID := claims["user_id"].(string)
-			c.Set("user_id", userID)
+			c.Locals("user_id", userID)
 			return c.Next()
 		},
 	})
