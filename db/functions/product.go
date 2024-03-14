@@ -143,3 +143,28 @@ func (p *Product) Add(ctx context.Context, product entity.Product) (entity.Produ
 
 	return product, nil
 }
+
+func (p *Product) UpdateStock(ctx context.Context, product entity.Product, userID int) (entity.Product, error) {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+	defer conn.Release()
+
+	sqlCheck := `SELECT id FROM products WHERE id = $1 AND user_id = $2`
+
+	err = conn.QueryRow(ctx, sqlCheck, product.ID, userID).Scan(&product.ID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return entity.Product{}, ErrNoRow
+	}
+
+	sql := `
+		update products set stock = $1 where id = $2 AND user_id = $3
+	`
+
+	_, err = conn.Exec(ctx, sql, product.Stock, product.ID, userID)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed update product stock: %v", err)
+	}
+	return product, nil
+}
