@@ -3,10 +3,12 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"shopifyx/db/functions"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type ImageUploader struct {
@@ -50,7 +52,9 @@ func (i *ImageUploader) Upload(c *fiber.Ctx) error {
 			JSON("unsupported mimetype")
 	}
 
-	path, err := i.Uploader.Upload(c.UserContext(), file)
+	filename := fmt.Sprintf("%s.%s", uuid.NewString(), filepath.Ext(fileHeader.Filename))
+
+	path, err := i.Uploader.Upload(c.UserContext(), file, filename)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(err.Error())
 	}

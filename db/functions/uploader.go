@@ -2,7 +2,6 @@ package functions
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"shopifyx/configs"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/google/uuid"
 )
 
 var credentialProvider = func(cfg configs.Config) aws.CredentialsProviderFunc {
@@ -41,12 +39,10 @@ func NewImageUploader(cfg configs.Config) *ImageUploader {
 	}
 }
 
-func (i *ImageUploader) Upload(ctx context.Context, file io.Reader) (string, error) {
-	fileName := fmt.Sprintf("%s.png", uuid.NewString())
-
+func (i *ImageUploader) Upload(ctx context.Context, file io.Reader, filename string) (string, error) {
 	result, err := i.uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String("sprint-bucket-public-read"),
-		Key:    aws.String(fileName),
+		Key:    aws.String(filename),
 		Body:   file,
 		ACL:    types.ObjectCannedACLPublicRead,
 	})

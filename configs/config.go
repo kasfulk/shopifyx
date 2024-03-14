@@ -33,9 +33,7 @@ func LoadConfig() (Config, error) {
 		DbUsername: os.Getenv("DB_USERNAME"),
 		DbPassword: os.Getenv("DB_PASSWORD"),
 
-		// NO NEED TO SET THIS FROM ENV VAR
-		// BECAUSE ON THE EC2 INSTANCE THERE IS NO ENV VAR CALLED APP_PORT
-		APPPort: "8000",
+		APPPort: os.Getenv("APP_PORT"),
 
 		PrometheusAddress: os.Getenv("PROMETHEUS_ADDRESS"),
 
