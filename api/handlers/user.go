@@ -97,7 +97,7 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 	}
 
 	// generate access token
-	accessToken, err := utils.GenerateAccessToken(result.Username)
+	accessToken, err := utils.GenerateAccessToken(result.Username, result.Id)
 	if err != nil {
 		status, response := responses.ErrorServers(err.Error())
 		return ctx.Status(status).JSON(response)
@@ -146,7 +146,7 @@ func (u *User) Login(ctx *fiber.Ctx) error {
 	}
 
 	// generate access token
-	accessToken, err := utils.GenerateAccessToken(result.Username)
+	accessToken, err := utils.GenerateAccessToken(result.Username, result.Id)
 	if err != nil {
 		status, response := responses.ErrorServers(err.Error())
 		return ctx.Status(status).JSON(response)
