@@ -65,7 +65,6 @@ func (app AddProductPayload) Validate() error {
 
 func (p *Product) BuyProduct(c *fiber.Ctx) error {
 	var payload struct {
-		ProductId            string `json:"productId"`
 		BankAccountId        string `json:"bankAccountId"`
 		PaymentProofImageUrl string `json:"paymentProofImageUrl"`
 		Qty                  int    `json:"quantity"`
@@ -77,16 +76,16 @@ func (p *Product) BuyProduct(c *fiber.Ctx) error {
 			JSON(fmt.Sprintf("failed parse payload: %v", err.Error()))
 	}
 
-	if payload.ProductId == "" || c.Params("id") == "" {
+	if c.Params("id") == "" {
 		return c.
 			Status(http.StatusBadRequest).
 			JSON("product id is is required")
 	}
-
-	if c.Params("id") != payload.ProductId {
+	productID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
 		return c.
 			Status(http.StatusBadRequest).
-			JSON("product id from params and body is different")
+			JSON("failed parse productId")
 	}
 
 	if payload.BankAccountId == "" {
@@ -107,22 +106,15 @@ func (p *Product) BuyProduct(c *fiber.Ctx) error {
 			JSON("minimum amount of quantity must be 1")
 	}
 
-	productId, err := strconv.Atoi(payload.ProductId)
+	bankAccountId, err := strconv.Atoi(payload.BankAccountId)
 	if err != nil {
 		return c.
 			Status(http.StatusBadRequest).
-			JSON("failed parse productId")
-	}
-
-	bankAccountId, err := strconv.Atoi(payload.ProductId)
-	if err != nil {
-		return c.
-			Status(http.StatusBadRequest).
-			JSON("failed parse productId")
+			JSON("failed parse bankAccountId")
 	}
 
 	payment, err := p.Database.Buy(c.UserContext(), entity.Payment{
-		ProductId:            productId,
+		ProductId:            productID,
 		BankAccountId:        bankAccountId,
 		PaymentProofImageUrl: payload.PaymentProofImageUrl,
 		Qty:                  payload.Qty,
