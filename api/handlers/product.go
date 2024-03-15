@@ -64,6 +64,54 @@ func (app ProductPayload) Validate() error {
 	)
 }
 
+func (p *Product) convertProductEntityToResponse(product entity.Product) ProductResponse {
+	return ProductResponse{
+		ID:             strconv.Itoa(product.ID),
+		UserID:         strconv.Itoa(product.UserID),
+		Name:           product.Name,
+		Price:          product.Price,
+		ImageURL:       product.ImageUrl,
+		Stock:          product.Stock,
+		Condition:      product.Condition,
+		Tags:           product.Tags,
+		IsPurchaseable: product.IsPurchaseable,
+	}
+}
+
+func (p *Product) handleError(c *fiber.Ctx, err error) error {
+	switch {
+	case errors.Is(err, functions.ErrProductNameDuplicate),
+		strings.Contains(err.Error(), "failed parse payload"),
+		strings.Contains(err.Error(), "failed parse product id"):
+		status, response := responses.ErrorBadRequests(err.Error())
+		return c.Status(status).JSON(response)
+	case errors.Is(err, fiber.ErrUnauthorized):
+		return fiber.ErrUnauthorized
+	case errors.Is(err, fiber.ErrForbidden):
+		return fiber.ErrForbidden
+	case errors.Is(err, functions.ErrNoRow):
+		status, response := responses.ErrorNotFound("no product found")
+		return c.Status(status).JSON(response)
+	default:
+		validationErrors, ok := err.(validation.Errors)
+		if !ok {
+			status, response := responses.ErrorServer(err.Error())
+			return c.Status(status).JSON(response)
+		}
+
+		errMessages := []string{}
+		for key, ve := range validationErrors {
+			errMessages = append(errMessages, fmt.Sprintf(
+				"field %s: %s",
+				key,
+				ve.Error()))
+		}
+
+		status, response := responses.ErrorBadRequests(strings.Join(errMessages, ""))
+		return c.Status(status).JSON(response)
+	}
+}
+
 func (p *Product) BuyProduct(c *fiber.Ctx) error {
 	var payload struct {
 		BankAccountId        string `json:"bankAccountId"`
@@ -242,50 +290,51 @@ func (p *Product) UpdateProduct(c *fiber.Ctx) error {
 	})
 }
 
-func (p *Product) convertProductEntityToResponse(product entity.Product) ProductResponse {
-	return ProductResponse{
-		ID:             strconv.Itoa(product.ID),
-		UserID:         strconv.Itoa(product.UserID),
-		Name:           product.Name,
-		Price:          product.Price,
-		ImageURL:       product.ImageUrl,
-		Stock:          product.Stock,
-		Condition:      product.Condition,
-		Tags:           product.Tags,
-		IsPurchaseable: product.IsPurchaseable,
+func (p *Product) UpdateStock(c *fiber.Ctx) error {
+	userIDClaim := c.Locals("user_id").(string)
+	userID, err := strconv.Atoi(userIDClaim)
+	if err != nil {
+		return p.handleError(c, err)
 	}
-}
 
-func (p *Product) handleError(c *fiber.Ctx, err error) error {
-	switch {
-	case errors.Is(err, functions.ErrProductNameDuplicate),
-		strings.Contains(err.Error(), "failed parse payload"),
-		strings.Contains(err.Error(), "failed parse product id"):
-		status, response := responses.ErrorBadRequests(err.Error())
-		return c.Status(status).JSON(response)
-	case errors.Is(err, fiber.ErrUnauthorized):
-		return fiber.ErrUnauthorized
-	case errors.Is(err, fiber.ErrForbidden):
-		return fiber.ErrForbidden
-	case errors.Is(err, functions.ErrNoRow):
-		status, response := responses.ErrorNotFound("no product found")
-		return c.Status(status).JSON(response)
-	default:
-		validationErrors, ok := err.(validation.Errors)
-		if !ok {
-			status, response := responses.ErrorServer(err.Error())
-			return c.Status(status).JSON(response)
-		}
-
-		errMessages := []string{}
-		for key, ve := range validationErrors {
-			errMessages = append(errMessages, fmt.Sprintf(
-				"field %s: %s",
-				key,
-				ve.Error()))
-		}
-
-		status, response := responses.ErrorBadRequests(strings.Join(errMessages, ""))
-		return c.Status(status).JSON(response)
+	var requestBody struct {
+		Stock int `json:"stock"`
 	}
+	if err := c.BodyParser(&requestBody); err != nil {
+		return c.Status(http.StatusBadRequest).SendString("Invalid request body")
+	}
+
+	// Validate stock value
+	if requestBody.Stock < 0 {
+		return c.Status(http.StatusBadRequest).SendString("Stock must be greater than or equal to 0")
+	}
+
+	// Retrieve product ID from request parameters
+	productID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return c.Status(http.StatusBadRequest).SendString("Invalid request body")
+	}
+
+	productCheck, err := p.Database.FindByIDUser(c.UserContext(), productID, userID)
+
+	if err != nil {
+		return c.Status(http.StatusNotFound).SendString("Product not found")
+	}
+
+	productCheck.Stock = requestBody.Stock
+
+	// Call UpdateStock method of the database
+	product, err := p.Database.UpdateStock(c.UserContext(), productCheck, userID)
+
+	if err != nil {
+		if err.Error() == "data not found" {
+			return c.Status(http.StatusNotFound).SendString(err.Error())
+		}
+		return c.Status(http.StatusInternalServerError).SendString(err.Error())
+	}
+
+	return c.Status(http.StatusOK).JSON(map[string]interface{}{
+		"message": "stock updated successfully",
+		"data":    product,
+	})
 }

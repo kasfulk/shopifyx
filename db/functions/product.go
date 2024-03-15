@@ -197,9 +197,74 @@ func (p *Product) FindByID(ctx context.Context, productID int) (entity.Product, 
 		return entity.Product{}, ErrNoRow
 	}
 
+	sql := `
+		update products set stock = $1 where id = $2 AND user_id = $3
+	`
+
+	_, err = conn.Exec(ctx, sql, product.Stock, product.ID, product.UserID)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed update product stock: %v", err)
+	}
 	if err != nil {
 		return entity.Product{}, fmt.Errorf("failed get product: %v", err)
 	}
 
+	return product, nil
+}
+
+func (p *Product) FindByIDUser(ctx context.Context, productID int, userID int) (entity.Product, error) {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+
+	defer conn.Release()
+
+	var product entity.Product
+
+	err = conn.QueryRow(ctx, `SELECT id, user_id, name, price, image_url, stock, condition, tags, is_purchaseable FROM products WHERE id = $1 AND UserID = $2`, productID, userID).Scan(
+		&product.ID, &product.UserID, &product.Name, &product.Price, &product.ImageUrl, &product.Stock, &product.Condition, &product.Tags, &product.IsPurchaseable,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return entity.Product{}, ErrNoRow
+	}
+
+	sql := `
+		update products set stock = $1 where id = $2 AND user_id = $3
+	`
+
+	_, err = conn.Exec(ctx, sql, product.Stock, product.ID, product.UserID)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed update product stock: %v", err)
+	}
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed get product: %v", err)
+	}
+
+	return product, nil
+}
+
+func (p *Product) UpdateStock(ctx context.Context, product entity.Product, userID int) (entity.Product, error) {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+	defer conn.Release()
+
+	sqlCheck := `SELECT id FROM products WHERE id = $1 AND user_id = $2`
+
+	err = conn.QueryRow(ctx, sqlCheck, product.ID, userID).Scan(&product.ID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return entity.Product{}, ErrNoRow
+	}
+
+	sql := `
+		update products set stock = $1 where id = $2 AND user_id = $3
+	`
+
+	_, err = conn.Exec(ctx, sql, product.Stock, product.ID, userID)
+	if err != nil {
+		return entity.Product{}, fmt.Errorf("failed update product stock: %v", err)
+	}
 	return product, nil
 }
