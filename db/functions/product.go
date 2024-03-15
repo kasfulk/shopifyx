@@ -21,6 +21,62 @@ func NewProductFn(dbPool *pgxpool.Pool) *Product {
 	}
 }
 
+func (p *Product) FindAll(ctx context.Context, filter entity.FilterGetProducts, userID int) ([]entity.Product, error) {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+
+	defer conn.Release()
+
+	sql := `SELECT id, user_id, name, price, image_url, stock, condition, tags, is_purchaseable FROM products`
+
+	whereSQL := []string{}
+	if filter.UserOnly {
+		whereSQL = append(whereSQL, " user_id = "+fmt.Sprintf("%d", userID))
+	}
+	if filter.Limit > 0 {
+		sql += " LIMIT " + fmt.Sprintf("%d", filter.Limit)
+	}
+	if filter.Offset > 0 {
+		sql += " OFFSET " + fmt.Sprintf("%d", filter.Offset)
+	}
+	if filter.Tags != nil && len(filter.Tags) > 0 {
+		tagsSQL := []string{}
+		for _, tag := range filter.Tags {
+			tagsSQL = append(tagsSQL, fmt.Sprintf("'%s'", tag))
+		}
+
+		whereSQL = append(whereSQL, " tags IN ("+strings.Join(tagsSQL, ",")+")")
+	}
+
+	if len(whereSQL) > 0 {
+		sql += " WHERE " + strings.Join(whereSQL, " AND ")
+	}
+
+	fmt.Println(sql)
+
+	rows, err := conn.Query(ctx, sql)
+	if err != nil {
+		return nil, fmt.Errorf("failed get products: %v", err)
+	}
+
+	defer rows.Close()
+
+	products := []entity.Product{}
+
+	for rows.Next() {
+		product := entity.Product{}
+		err := rows.Scan(&product.ID, &product.UserID, &product.Name, &product.Price, &product.ImageUrl, &product.Stock, &product.Condition, &product.Tags, &product.IsPurchaseable)
+		if err != nil {
+			return nil, fmt.Errorf("failed scan products: %v", err)
+		}
+		products = append(products, product)
+	}
+
+	return products, nil
+}
+
 func (p *Product) Buy(ctx context.Context, payment entity.Payment) (entity.Payment, error) {
 	conn, err := p.dbPool.Acquire(ctx)
 	if err != nil {

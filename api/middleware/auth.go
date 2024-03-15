@@ -32,3 +32,29 @@ func JWTAuth() fiber.Handler {
 		},
 	})
 }
+
+func OptionalJWTAuth() fiber.Handler {
+	config, _ := configs.LoadConfig()
+
+	return jwtware.New(jwtware.Config{
+		SigningKey: []byte(config.JWTSecret),
+		Filter: func(c *fiber.Ctx) bool {
+			return false
+		},
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			if err != nil {
+				c.Locals("user_id", "0")
+				return c.Next()
+			}
+			return c.Next()
+		},
+		SuccessHandler: func(c *fiber.Ctx) error {
+			token := c.Locals("user").(*jwt.Token)
+			claims := token.Claims.(jwt.MapClaims)
+
+			userID := claims["user_id"].(string)
+			c.Locals("user_id", userID)
+			return c.Next()
+		},
+	})
+}
