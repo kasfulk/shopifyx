@@ -90,3 +90,23 @@ func (u *User) Login(ctx context.Context, username, password string) (entity.Use
 
 	return result, nil
 }
+
+func (u *User) GetUserById(ctx context.Context, userID string) (entity.User, error) {
+	conn, err := u.dbPool.Acquire(ctx)
+	if err != nil {
+		return entity.User{}, err
+	}
+	defer conn.Release()
+
+	var result entity.User
+
+	err = conn.QueryRow(ctx, `SELECT id, name, username FROM users WHERE id = $1`, userID).Scan(&result.Id, &result.Name, &result.Username)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return result, ErrNoRow
+	}
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}

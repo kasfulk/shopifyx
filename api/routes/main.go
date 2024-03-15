@@ -19,8 +19,15 @@ func RouteRegister(app *fiber.App, deps handlers.Dependencies) {
 	UserRoutes(app, userHandler)
 
 	productHandler := handlers.Product{
-		Database: functions.NewProductFn(deps.DbPool),
+		Database:     functions.NewProductFn(deps.DbPool),
+		UserDatabase: functions.NewUser(deps.DbPool, deps.Cfg),
 	}
 
 	ProductRoutes(app, productHandler)
+
+	imageUploaderHandler := handlers.ImageUploader{
+		Uploader: functions.NewImageUploader(deps.Cfg),
+	}
+
+	ImageRoutes(app, imageUploaderHandler)
 }
