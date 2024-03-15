@@ -35,23 +35,21 @@ func (p *Product) FindAll(ctx context.Context, filter entity.FilterGetProducts, 
 	if filter.UserOnly {
 		whereSQL = append(whereSQL, " user_id = "+fmt.Sprintf("%d", userID))
 	}
+
+	if filter.Tags != nil && len(filter.Tags) > 0 {
+		tags := fmt.Sprintf("%s%s%s", "'", strings.Join(filter.Tags, "','"), "'")
+		whereSQL = append(whereSQL, " tags && ARRAY["+tags+"]::varchar[]")
+	}
+
+	if len(whereSQL) > 0 {
+		sql += " WHERE " + strings.Join(whereSQL, " AND ")
+	}
+
 	if filter.Limit > 0 {
 		sql += " LIMIT " + fmt.Sprintf("%d", filter.Limit)
 	}
 	if filter.Offset > 0 {
 		sql += " OFFSET " + fmt.Sprintf("%d", filter.Offset)
-	}
-	if filter.Tags != nil && len(filter.Tags) > 0 {
-		tagsSQL := []string{}
-		for _, tag := range filter.Tags {
-			tagsSQL = append(tagsSQL, fmt.Sprintf("'%s'", tag))
-		}
-
-		whereSQL = append(whereSQL, " tags IN ("+strings.Join(tagsSQL, ",")+")")
-	}
-
-	if len(whereSQL) > 0 {
-		sql += " WHERE " + strings.Join(whereSQL, " AND ")
 	}
 
 	fmt.Println(sql)
