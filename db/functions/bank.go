@@ -96,3 +96,33 @@ func (b *Bank) Delete(ctx context.Context, userId, accId string) error {
 
 	return err
 }
+
+func (b *Bank) Update(ctx context.Context, e entity.Bank) error {
+	conn, err := b.dbPool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("faield acquire connection from dbpool: %v", err)
+	}
+
+	defer conn.Release()
+
+	var bnk entity.Bank
+
+	err = conn.QueryRow(ctx, `select user_id from banks where id = $1`, e.Id).Scan(
+		&bnk.UserId,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNoRow
+		}
+
+		return err
+	}
+
+	if bnk.UserId != e.UserId {
+		return ErrUnauthorized
+	}
+
+	_, err = conn.Exec(ctx, `update banks set bank_name = $1, bank_account_name = $2, bank_account_number = $3 where id = $4`, e.BankName, e.BankAccountName, e.BankAccountNumber, e.Id)
+
+	return err
+}

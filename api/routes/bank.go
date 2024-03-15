@@ -13,4 +13,5 @@ func BankRoutes(app *fiber.App, h handlers.BankHandler) {
 	g.Post("/account", h.Create)
 	g.Get("/account", h.Get)
 	g.Delete("/account/:bankAccountId", h.Delete)
+	g.Patch("/account/:bankAccountId", h.Update)
 }

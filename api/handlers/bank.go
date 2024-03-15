@@ -89,3 +89,56 @@ func (b *BankHandler) Delete(c *fiber.Ctx) error {
 
 	return c.SendStatus(http.StatusOK)
 }
+
+func (b *BankHandler) Update(c *fiber.Ctx) error {
+	userIDClaim := c.Locals("user_id").(string)
+	userID, err := strconv.Atoi(userIDClaim)
+	if err != nil {
+		return c.SendStatus(http.StatusUnauthorized)
+	}
+
+	var payload struct {
+		BankName          string `json:"bankName"`
+		BankAccountName   string `json:"bankAccountName"`
+		BankAccountNumber string `json:"bankAccountNumber"`
+	}
+
+	if err := c.BodyParser(&payload); err != nil {
+		return c.SendStatus(http.StatusBadRequest)
+	}
+
+	var (
+		lenBankName      = len(payload.BankName)
+		lenAccountName   = len(payload.BankAccountName)
+		lenAccountNumber = len(payload.BankAccountNumber)
+		isValid          = func(l int) bool {
+			return l >= 5 && l <= 15
+		}
+	)
+
+	if !isValid(lenBankName) || !isValid(lenAccountName) || !isValid(lenAccountNumber) {
+		return c.SendStatus(http.StatusBadRequest)
+	}
+
+	err = b.Bank.Update(c.UserContext(), entity.Bank{
+		Id:                c.Params("bankAccountId"),
+		UserId:            userID,
+		BankName:          payload.BankName,
+		BankAccountName:   payload.BankAccountName,
+		BankAccountNumber: payload.BankAccountNumber,
+	})
+
+	if errors.Is(err, functions.ErrNoRow) {
+		return c.SendStatus(http.StatusNotFound)
+	}
+
+	if errors.Is(err, functions.ErrUnauthorized) {
+		return c.SendStatus(http.StatusUnauthorized)
+	}
+
+	if err != nil {
+		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	return c.SendStatus(http.StatusOK)
+}
