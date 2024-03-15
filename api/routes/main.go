@@ -23,4 +23,10 @@ func RouteRegister(app *fiber.App, deps handlers.Dependencies) {
 	}
 
 	ProductRoutes(app, productHandler)
+
+	imageUploaderHandler := handlers.ImageUploader{
+		Uploader: functions.NewImageUploader(deps.Cfg),
+	}
+
+	ImageRoutes(app, imageUploaderHandler)
 }
