@@ -30,4 +30,10 @@ func RouteRegister(app *fiber.App, deps handlers.Dependencies) {
 	}
 
 	ImageRoutes(app, imageUploaderHandler)
+
+	bankAccountHandler := handlers.BankHandler{
+		Bank: *functions.NewBank(deps.DbPool),
+	}
+
+	BankRoutes(app, bankAccountHandler)
 }
