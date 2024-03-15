@@ -42,10 +42,6 @@ func OptionalJWTAuth() fiber.Handler {
 			return false
 		},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			if err != nil {
-				c.Locals("user_id", "0")
-				return c.Next()
-			}
 			return c.Next()
 		},
 		SuccessHandler: func(c *fiber.Ctx) error {

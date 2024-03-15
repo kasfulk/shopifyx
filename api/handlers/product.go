@@ -43,6 +43,14 @@ type (
 		Tags           []string `json:"tags"`
 		IsPurchaseable bool     `json:"isPurchaseable"`
 	}
+
+	QueryFilterGetProducts struct {
+		UserOnly  bool     `json:"userOnly"`
+		Limit     int      `json:"limit"`
+		Offset    int      `json:"offset"`
+		Tags      []string `json:"tags"`
+		Condition string   `json:"condition"`
+	}
 )
 
 func (app ProductPayload) Validate() error {
@@ -64,6 +72,17 @@ func (app ProductPayload) Validate() error {
 	)
 }
 
+func (app QueryFilterGetProducts) Validate() error {
+	return validation.ValidateStruct(&app,
+		// Limit should be greater than 0.
+		validation.Field(&app.Limit, validation.Min(0)),
+		// Offset cannot should be greater than 0.
+		validation.Field(&app.Offset, validation.Min(0)),
+		// Condition should be either "new" or "second".
+		validation.Field(&app.Condition, validation.In("new", "second")),
+	)
+}
+
 func (p *Product) convertProductEntityToResponse(product entity.Product) ProductResponse {
 	return ProductResponse{
 		ID:             strconv.Itoa(product.ID),
@@ -75,6 +94,16 @@ func (p *Product) convertProductEntityToResponse(product entity.Product) Product
 		Condition:      product.Condition,
 		Tags:           product.Tags,
 		IsPurchaseable: product.IsPurchaseable,
+	}
+}
+
+func (p *Product) convertQueryFilterToEntity(filter QueryFilterGetProducts) entity.FilterGetProducts {
+	return entity.FilterGetProducts{
+		UserOnly:  filter.UserOnly,
+		Limit:     filter.Limit,
+		Offset:    filter.Offset,
+		Tags:      filter.Tags,
+		Condition: filter.Condition,
 	}
 }
 
@@ -118,9 +147,14 @@ func (p *Product) GetProducts(c *fiber.Ctx) error {
 		err    error
 	)
 
-	var filter entity.FilterGetProducts
+	var filter QueryFilterGetProducts
 	if err := c.QueryParser(&filter); err != nil {
 		return p.handleError(c, errors.New(fmt.Sprintf("failed to parse query params: %v", err.Error())))
+	}
+
+	err = filter.Validate()
+	if err != nil {
+		return p.handleError(c, err)
 	}
 
 	if c.Locals("user_id") != nil {
@@ -131,7 +165,8 @@ func (p *Product) GetProducts(c *fiber.Ctx) error {
 		}
 	}
 
-	products, err := p.Database.FindAll(c.UserContext(), filter, userID)
+	filterDB := p.convertQueryFilterToEntity(filter)
+	products, err := p.Database.FindAll(c.UserContext(), filterDB, userID)
 	if err != nil {
 		return p.handleError(c, err)
 	}

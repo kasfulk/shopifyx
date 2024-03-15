@@ -8,7 +8,7 @@ import (
 )
 
 func ProductRoutes(app *fiber.App, h handlers.Product) {
-	g := app.Group("/v1/product").Use(middleware.JWTAuth())
+	g := app.Group("/v1/product")
 	g.Get("", middleware.OptionalJWTAuth(), h.GetProducts)
 	g.Post("/:id/buy", middleware.JWTAuth(), h.BuyProduct)
 	g.Post("/:id/stock", middleware.JWTAuth(), h.UpdateStock)

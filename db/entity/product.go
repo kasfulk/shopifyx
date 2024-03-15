@@ -14,9 +14,10 @@ type (
 	}
 
 	FilterGetProducts struct {
-		UserOnly bool     `json:"userOnly"`
-		Limit    int      `json:"limit"`
-		Offset   int      `json:"offset"`
-		Tags     []string `json:"tags"`
+		UserOnly  bool     `json:"userOnly"`
+		Limit     int      `json:"limit"`
+		Offset    int      `json:"offset"`
+		Tags      []string `json:"tags"`
+		Condition string   `json:"condition"`
 	}
 )
