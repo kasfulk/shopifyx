@@ -110,6 +110,40 @@ func (p *Product) handleError(c *fiber.Ctx, err error) error {
 		status, response := responses.ErrorBadRequests(strings.Join(errMessages, ""))
 		return c.Status(status).JSON(response)
 	}
+func (p *Product) GetProducts(c *fiber.Ctx) error {
+	var (
+		userID int
+		err    error
+	)
+
+	var filter entity.FilterGetProducts
+	if err := c.QueryParser(&filter); err != nil {
+		return p.handleError(c, errors.New(fmt.Sprintf("failed to parse query params: %v", err.Error())))
+	}
+
+	if c.Locals("user_id") != nil {
+		userIDClaim := c.Locals("user_id").(string)
+		userID, err = strconv.Atoi(userIDClaim)
+		if err != nil {
+			return p.handleError(c, errors.New(fmt.Sprintf("failed parse user id: %v", err.Error())))
+		}
+	}
+
+	products, err := p.Database.FindAll(c.UserContext(), filter, userID)
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	result := []ProductResponse{}
+	for _, product := range products {
+		result = append(result, p.convertProductEntityToResponse(product))
+	}
+
+	return c.Status(http.StatusOK).JSON(map[string]interface{}{
+		"message": "products fetched successfully",
+		"data":    result,
+	})
+
 }
 
 func (p *Product) BuyProduct(c *fiber.Ctx) error {
