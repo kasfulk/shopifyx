@@ -54,3 +54,17 @@ func (b *BankHandler) Create(c *fiber.Ctx) error {
 
 	return c.SendStatus(http.StatusOK)
 }
+
+func (b *BankHandler) Get(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(string)
+
+	accounts, err := b.Bank.Get(c.UserContext(), userId)
+	if err != nil {
+		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	return c.JSON(map[string]interface{}{
+		"message": "success",
+		"data":    accounts,
+	})
+}

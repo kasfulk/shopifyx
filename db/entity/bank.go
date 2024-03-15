@@ -1,8 +1,8 @@
 package entity
 
 type Bank struct {
-	Id                string `json:"id"`
-	UserId            int    `json:"userId"`
+	Id                string `json:"bankAccountId"`
+	UserId            int    `json:"-"`
 	BankName          string `json:"bankName"`
 	BankAccountName   string `json:"bankAccountName"`
 	BankAccountNumber string `json:"bankAccountNumber"`
