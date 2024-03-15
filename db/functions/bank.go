@@ -2,9 +2,12 @@ package functions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"shopifyx/db/entity"
+	"strconv"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -62,4 +65,34 @@ func (b *Bank) Get(ctx context.Context, userId string) ([]entity.Bank, error) {
 	}
 
 	return result, nil
+}
+
+func (b *Bank) Delete(ctx context.Context, userId, accId string) error {
+	conn, err := b.dbPool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("faield acquire connection from dbpool: %v", err)
+	}
+
+	defer conn.Release()
+
+	var bnk entity.Bank
+
+	err = conn.QueryRow(ctx, `select user_id from banks where id = $1`, accId).Scan(
+		&bnk.UserId,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNoRow
+		}
+
+		return err
+	}
+
+	if strconv.Itoa(bnk.UserId) != userId {
+		return ErrUnauthorized
+	}
+
+	_, err = conn.Exec(ctx, "delete from banks where id = $1", accId)
+
+	return err
 }

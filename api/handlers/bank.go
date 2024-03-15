@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"shopifyx/db/entity"
 	"shopifyx/db/functions"
@@ -67,4 +68,24 @@ func (b *BankHandler) Get(c *fiber.Ctx) error {
 		"message": "success",
 		"data":    accounts,
 	})
+}
+
+func (b *BankHandler) Delete(c *fiber.Ctx) error {
+	userId := c.Locals("user_id").(string)
+	bankAccountId := c.Params("bankAccountId")
+
+	err := b.Bank.Delete(c.UserContext(), userId, bankAccountId)
+	if err != nil {
+		if errors.Is(err, functions.ErrNoRow) {
+			return c.SendStatus(http.StatusNotFound)
+		}
+
+		if errors.Is(err, functions.ErrUnauthorized) {
+			return c.SendStatus(http.StatusUnauthorized)
+		}
+
+		return c.SendStatus(http.StatusInternalServerError)
+	}
+
+	return c.SendStatus(http.StatusOK)
 }
