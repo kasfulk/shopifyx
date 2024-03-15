@@ -9,7 +9,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/lib/pq"
 )
 
 type Product struct {
@@ -30,37 +29,69 @@ func (p *Product) FindAll(ctx context.Context, filter entity.FilterGetProducts, 
 
 	defer conn.Release()
 
-	sql := `SELECT id, user_id, name, price, image_url, stock, condition, tags, is_purchaseable FROM products`
-
-	whereSQL := []string{}
-	if filter.UserOnly {
-		whereSQL = append(whereSQL, " user_id = "+fmt.Sprintf("%d", userID))
+	var (
+		query       = `SELECT id, user_id, name, price, image_url, stock, condition, tags, is_purchaseable FROM products`
+		arg         = 1
+		args  []any = []any{}
+		where       = ""
+	)
+	if filter.UserOnly && userID != 0 {
+		where = fmt.Sprintf("user_id = $%d", arg)
+		args = append(args, userID)
+		arg++
 	}
 
-	if filter.Tags != nil && len(filter.Tags) > 0 {
-		tagSQl := " ARRAY[$1]::varchar[] <@ tags", pq.Array(filter.Tags)
+	lenFilterTags := len(filter.Tags)
 
-		whereSQL = append(whereSQL, tagSQl)
+	if filter.Tags != nil && lenFilterTags > 0 {
+		tags := ""
+		for k, t := range filter.Tags {
+			tags = fmt.Sprintf("%s'%s'", tags, t)
+
+			if k != lenFilterTags-1 {
+				tags = fmt.Sprintf("%s, ", tags)
+			}
+		}
+		fmt.Println("TAGS: ", tags, filter.Tags)
+		if where != "" {
+			where = fmt.Sprintf(`%s AND tags && ARRAY[%s]::varchar[]`, where, tags)
+		}
+
+		if where == "" {
+			where = fmt.Sprintf(`tags && ARRAY[%s]::varchar[]`, tags)
+		}
 	}
 
 	if filter.Condition != "" {
-		whereSQL = append(whereSQL, " condition = '"+filter.Condition+"'")
+		if where != "" {
+			where = fmt.Sprintf(`%s AND condition = $%d`, where, arg)
+		}
+
+		if where == "" {
+			where = fmt.Sprintf(`condition = $%d`, arg)
+		}
+
+		args = append(args, filter.Condition)
+		arg++
 	}
 
-	if len(whereSQL) > 0 {
-		sql += " WHERE " + strings.Join(whereSQL, " AND ")
+	if where != "" {
+		query = fmt.Sprintf(`%s where %s`, query, where)
 	}
 
 	if filter.Limit > 0 {
-		sql += " LIMIT " + fmt.Sprintf("%d", filter.Limit)
-	}
-	if filter.Offset > 0 {
-		sql += " OFFSET " + fmt.Sprintf("%d", filter.Offset)
+		query = fmt.Sprintf(`%s LIMIT $%d`, query, arg)
+		args = append(args, filter.Limit)
+		arg++
 	}
 
-	fmt.Println(sql)
+	if filter.Limit > 0 {
+		query = fmt.Sprintf(`%s OFFSET $%d`, query, arg)
+		args = append(args, filter.Offset)
+		arg++
+	}
 
-	rows, err := conn.Query(ctx, sql)
+	rows, err := conn.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed get products: %v", err)
 	}
