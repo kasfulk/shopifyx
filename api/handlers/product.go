@@ -45,11 +45,40 @@ type (
 	}
 
 	QueryFilterGetProducts struct {
-		UserOnly  bool     `json:"userOnly"`
-		Limit     int      `json:"limit"`
-		Offset    int      `json:"offset"`
-		Tags      []string `json:"tags"`
-		Condition string   `json:"condition"`
+		UserOnly       bool     `json:"userOnly"`
+		Limit          int      `json:"limit"`
+		Offset         int      `json:"offset"`
+		Tags           []string `json:"tags"`
+		Condition      string   `json:"condition"`
+		ShowEmptyStock bool     `json:"showEmptyStock"`
+		MaxPrice       int      `json:"maxPrice"`
+		MinPrice       int      `json:"minPrice"`
+		SortBy         string   `json:"sortBy"`
+		OrderBy        string   `json:"orderBy"`
+		Search         string   `json:"search"`
+	}
+
+	GetProductResponse struct {
+		ProductId      int      `json:"productId"`
+		Name           string   `json:"name"`
+		Price          int      `json:"price"`
+		ImageUrl       string   `json:"imageUrl"`
+		Stock          int      `json:"stock"`
+		Condition      string   `json:"condition"`
+		Tags           []string `json:"tags"`
+		IsPurchaseable bool     `json:"isPurchaseable"`
+		PurchaseCount  int      `json:"purchaseCount"`
+	}
+
+	Meta struct {
+		Limit  int `json:"limit"`
+		Offset int `json:"offset"`
+		Total  int `json:"total"`
+	}
+
+	GetProductsResponse struct {
+		Data []GetProductResponse `json:"data"`
+		Meta Meta                 `json:"meta"`
 	}
 )
 
@@ -80,6 +109,14 @@ func (app QueryFilterGetProducts) Validate() error {
 		validation.Field(&app.Offset, validation.Min(0)),
 		// Condition should be either "new" or "second".
 		validation.Field(&app.Condition, validation.In("new", "second")),
+		// MaxPrice should be greater than 0.
+		validation.Field(&app.MaxPrice, validation.Min(0)),
+		// MinPrice should be greater than 0.
+		validation.Field(&app.MinPrice, validation.Min(0)),
+		// SortBy should be either "price" or "date".
+		validation.Field(&app.SortBy, validation.In("price", "date")),
+		// OrderBy should be either "asc" or "dsc".
+		validation.Field(&app.OrderBy, validation.In("asc", "dsc")),
 	)
 }
 
@@ -99,11 +136,46 @@ func (p *Product) convertProductEntityToResponse(product entity.Product) Product
 
 func (p *Product) convertQueryFilterToEntity(filter QueryFilterGetProducts) entity.FilterGetProducts {
 	return entity.FilterGetProducts{
-		UserOnly:  filter.UserOnly,
-		Limit:     filter.Limit,
-		Offset:    filter.Offset,
-		Tags:      filter.Tags,
-		Condition: filter.Condition,
+		UserOnly:       filter.UserOnly,
+		Limit:          filter.Limit,
+		Offset:         filter.Offset,
+		Tags:           filter.Tags,
+		Condition:      filter.Condition,
+		ShowEmptyStock: filter.ShowEmptyStock,
+		MaxPrice:       filter.MaxPrice,
+		MinPrice:       filter.MinPrice,
+		SortBy:         filter.SortBy,
+		OrderBy:        filter.OrderBy,
+		Search:         filter.Search,
+	}
+}
+
+func (p *Product) convertProductsToGetProductsResponse(
+	products []entity.Product,
+	limit, offset, total int,
+) GetProductsResponse {
+	var result []GetProductResponse
+	for _, product := range products {
+		result = append(result, GetProductResponse{
+			ProductId:      product.ID,
+			Name:           product.Name,
+			Price:          product.Price,
+			ImageUrl:       product.ImageUrl,
+			Stock:          product.Stock,
+			Condition:      product.Condition,
+			Tags:           product.Tags,
+			IsPurchaseable: product.IsPurchaseable,
+			PurchaseCount:  product.PurchaseCount,
+		})
+	}
+
+	return GetProductsResponse{
+		Data: result,
+		Meta: Meta{
+			Limit:  limit,
+			Offset: offset,
+			Total:  total,
+		},
 	}
 }
 
@@ -171,13 +243,15 @@ func (p *Product) GetProducts(c *fiber.Ctx) error {
 		return p.handleError(c, err)
 	}
 
-	result := []ProductResponse{}
-	for _, product := range products {
-		result = append(result, p.convertProductEntityToResponse(product))
+	total, err := p.Database.Count(c.UserContext(), filterDB, userID)
+	if err != nil {
+		return p.handleError(c, err)
 	}
 
+	result := p.convertProductsToGetProductsResponse(products, filter.Limit, filter.Offset, total)
+
 	return c.Status(http.StatusOK).JSON(map[string]interface{}{
-		"message": "products fetched successfully",
+		"message": "ok",
 		"data":    result,
 	})
 
@@ -328,13 +402,12 @@ func (p *Product) UpdateProduct(c *fiber.Ctx) error {
 		return p.handleError(c, errors.New("failed parse product id"))
 	}
 
-	productData, err := p.Database.FindByID(c.UserContext(), productID)
+	_, err = p.Database.FindByIDUser(c.UserContext(), productID, userID)
 	if err != nil {
+		if err == functions.ErrNoRow {
+			return p.handleError(c, fiber.ErrForbidden)
+		}
 		return p.handleError(c, err)
-	}
-
-	if productData.UserID != userID {
-		return p.handleError(c, fiber.ErrForbidden)
 	}
 
 	product, err := p.Database.Update(c.UserContext(), entity.Product{
@@ -427,13 +500,12 @@ func (p *Product) DeleteProduct(c *fiber.Ctx) error {
 		return p.handleError(c, errors.New("failed parse product id"))
 	}
 
-	productData, err := p.Database.FindByID(c.UserContext(), productID)
+	_, err = p.Database.FindByIDUser(c.UserContext(), productID, userID)
 	if err != nil {
+		if err == functions.ErrNoRow {
+			return p.handleError(c, fiber.ErrForbidden)
+		}
 		return p.handleError(c, err)
-	}
-
-	if productData.UserID != userID {
-		return p.handleError(c, fiber.ErrForbidden)
 	}
 
 	err = p.Database.DeleteByID(c.UserContext(), productID)
