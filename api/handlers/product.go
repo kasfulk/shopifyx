@@ -338,3 +338,40 @@ func (p *Product) UpdateStock(c *fiber.Ctx) error {
 		"data":    product,
 	})
 }
+
+func (p *Product) DeleteProduct(c *fiber.Ctx) error {
+	userIDClaim := c.Locals("user_id").(string)
+	userID, err := strconv.Atoi(userIDClaim)
+	if err != nil {
+		return p.handleError(c, errors.New(fmt.Sprintf("failed parse user id: %v", err.Error())))
+	}
+
+	_, err = p.UserDatabase.GetUserById(c.UserContext(), userIDClaim)
+	if err != nil {
+		return p.handleError(c, fiber.ErrUnauthorized)
+	}
+
+	productID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return p.handleError(c, errors.New("failed parse product id"))
+	}
+
+	productData, err := p.Database.FindByID(c.UserContext(), productID)
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	if productData.UserID != userID {
+		return p.handleError(c, fiber.ErrForbidden)
+	}
+
+	err = p.Database.DeleteByID(c.UserContext(), productID)
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	return c.Status(http.StatusOK).JSON(map[string]interface{}{
+		"message": "product deleted successfully",
+	})
+
+}
