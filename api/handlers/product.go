@@ -314,11 +314,13 @@ func (p *Product) BuyProduct(c *fiber.Ctx) error {
 		Qty:                  payload.Qty,
 	})
 
-	if errors.Is(err, functions.ErrNoRow) || errors.Is(err, functions.ErrInsuficientQty) {
-		return c.Status(http.StatusBadRequest).JSON(err.Error())
-	}
-
 	if err != nil {
+		if errors.Is(err, functions.ErrNoRow) {
+			return c.Status(http.StatusNotFound).JSON(err.Error())
+		} else if errors.Is(err, functions.ErrInsuficientQty) {
+			return c.Status(http.StatusBadRequest).JSON(err.Error())
+		}
+
 		slog.Error(err.Error())
 		return c.Status(http.StatusInternalServerError).JSON(err.Error())
 	}

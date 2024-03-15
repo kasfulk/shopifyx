@@ -333,7 +333,7 @@ func (p *Product) FindByIDUser(ctx context.Context, productID int, userID int) (
 
 	var product entity.Product
 
-	err = conn.QueryRow(ctx, `SELECT id FROM products WHERE id = $1 AND UserID = $2`, productID, userID).Scan(&product.ID)
+	err = conn.QueryRow(ctx, `SELECT id FROM products WHERE id = $1 AND user_id = $2`, productID, userID).Scan(&product.ID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return entity.Product{}, ErrNoRow
 	}
