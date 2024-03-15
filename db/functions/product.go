@@ -268,3 +268,20 @@ func (p *Product) UpdateStock(ctx context.Context, product entity.Product, userI
 	}
 	return product, nil
 }
+
+func (p *Product) DeleteByID(ctx context.Context, productID int) error {
+	conn, err := p.dbPool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("failed acquire db connection from pool: %v", err)
+	}
+
+	defer conn.Release()
+
+	sql := `delete from products where id = $1`
+	_, err = conn.Exec(ctx, sql, productID)
+	if err != nil {
+		return fmt.Errorf("failed delete product: %v", err)
+	}
+
+	return nil
+}
