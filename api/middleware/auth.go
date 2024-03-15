@@ -18,9 +18,8 @@ func JWTAuth() fiber.Handler {
 		},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			if err != nil {
-				return fiber.ErrForbidden
+				return fiber.ErrUnauthorized
 			}
-
 			return c.Next()
 		},
 		SuccessHandler: func(c *fiber.Ctx) error {
