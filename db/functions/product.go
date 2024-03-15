@@ -169,7 +169,6 @@ func (p *Product) Update(ctx context.Context, product entity.Product) (entity.Pr
 		product.UserID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-
 			return entity.Product{}, ErrNoRow
 		} else if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			return entity.Product{}, ErrProductNameDuplicate
