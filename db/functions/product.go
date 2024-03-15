@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lib/pq"
 )
 
 type Product struct {
@@ -37,8 +38,13 @@ func (p *Product) FindAll(ctx context.Context, filter entity.FilterGetProducts, 
 	}
 
 	if filter.Tags != nil && len(filter.Tags) > 0 {
-		tags := fmt.Sprintf("%s%s%s", "'", strings.Join(filter.Tags, "','"), "'")
-		whereSQL = append(whereSQL, " tags && ARRAY["+tags+"]::varchar[]")
+		tagSQl := " ARRAY[$1]::varchar[] <@ tags", pq.Array(filter.Tags)
+
+		whereSQL = append(whereSQL, tagSQl)
+	}
+
+	if filter.Condition != "" {
+		whereSQL = append(whereSQL, " condition = '"+filter.Condition+"'")
 	}
 
 	if len(whereSQL) > 0 {
