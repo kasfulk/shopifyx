@@ -110,6 +110,8 @@ func (p *Product) handleError(c *fiber.Ctx, err error) error {
 		status, response := responses.ErrorBadRequests(strings.Join(errMessages, ""))
 		return c.Status(status).JSON(response)
 	}
+}
+
 func (p *Product) GetProducts(c *fiber.Ctx) error {
 	var (
 		userID int
