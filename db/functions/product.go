@@ -52,7 +52,6 @@ func (p *Product) FindAll(ctx context.Context, filter entity.FilterGetProducts, 
 				tags = fmt.Sprintf("%s, ", tags)
 			}
 		}
-		fmt.Println("TAGS: ", tags, filter.Tags)
 		if where != "" {
 			where = fmt.Sprintf(`%s AND tags && ARRAY[%s]::varchar[]`, where, tags)
 		}
