@@ -21,6 +21,7 @@ func RouteRegister(app *fiber.App, deps handlers.Dependencies) {
 	productHandler := handlers.Product{
 		Database:     functions.NewProductFn(deps.DbPool),
 		UserDatabase: functions.NewUser(deps.DbPool, deps.Cfg),
+		BankDatabase: functions.NewBank(deps.DbPool),
 	}
 
 	ProductRoutes(app, productHandler)

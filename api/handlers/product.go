@@ -20,21 +20,10 @@ type (
 	Product struct {
 		Database     *functions.Product
 		UserDatabase *functions.User
+		BankDatabase *functions.Bank
 	}
 
 	ProductPayload struct {
-		Name           string   `json:"name"`
-		Price          int      `json:"price"`
-		ImageURL       string   `json:"imageUrl"`
-		Stock          int      `json:"stock"`
-		Condition      string   `json:"condition"`
-		Tags           []string `json:"tags"`
-		IsPurchaseable bool     `json:"isPurchaseable"`
-	}
-
-	ProductResponse struct {
-		ID             string   `json:"id"`
-		UserID         string   `json:"userId"`
 		Name           string   `json:"name"`
 		Price          int      `json:"price"`
 		ImageURL       string   `json:"imageUrl"`
@@ -58,8 +47,8 @@ type (
 		Search         string   `json:"search"`
 	}
 
-	GetProductResponse struct {
-		ProductId      int      `json:"productId"`
+	ProductResponse struct {
+		ProductId      string   `json:"productId"`
 		Name           string   `json:"name"`
 		Price          int      `json:"price"`
 		ImageUrl       string   `json:"imageUrl"`
@@ -76,9 +65,27 @@ type (
 		Total  int `json:"total"`
 	}
 
+	Bank struct {
+		BankAccountId     string `json:"bankAccountId"`
+		BankName          string `json:"bankName"`
+		BankAccountName   string `json:"bankAccountName"`
+		BankAccountNumber string `json:"bankAccountNumber"`
+	}
+
+	SellerData struct {
+		Name             string `json:"name"`
+		ProductSoldTotal int    `json:"productSoldTotal"`
+		BankAccounts     []Bank `json:"bankAccounts"`
+	}
+
 	GetProductsResponse struct {
-		Data []GetProductResponse `json:"data"`
-		Meta Meta                 `json:"meta"`
+		Data []ProductResponse `json:"data"`
+		Meta Meta              `json:"meta"`
+	}
+
+	GetProductDetailResponse struct {
+		Product    ProductResponse `json:"product"`
+		SellerData SellerData      `json:"seller"`
 	}
 )
 
@@ -122,15 +129,15 @@ func (app QueryFilterGetProducts) Validate() error {
 
 func (p *Product) convertProductEntityToResponse(product entity.Product) ProductResponse {
 	return ProductResponse{
-		ID:             strconv.Itoa(product.ID),
-		UserID:         strconv.Itoa(product.UserID),
+		ProductId:      strconv.Itoa(product.ID),
 		Name:           product.Name,
 		Price:          product.Price,
-		ImageURL:       product.ImageUrl,
+		ImageUrl:       product.ImageUrl,
 		Stock:          product.Stock,
 		Condition:      product.Condition,
 		Tags:           product.Tags,
 		IsPurchaseable: product.IsPurchaseable,
+		PurchaseCount:  product.PurchaseCount,
 	}
 }
 
@@ -154,19 +161,9 @@ func (p *Product) convertProductsToGetProductsResponse(
 	products []entity.Product,
 	limit, offset, total int,
 ) GetProductsResponse {
-	var result []GetProductResponse
+	var result []ProductResponse
 	for _, product := range products {
-		result = append(result, GetProductResponse{
-			ProductId:      product.ID,
-			Name:           product.Name,
-			Price:          product.Price,
-			ImageUrl:       product.ImageUrl,
-			Stock:          product.Stock,
-			Condition:      product.Condition,
-			Tags:           product.Tags,
-			IsPurchaseable: product.IsPurchaseable,
-			PurchaseCount:  product.PurchaseCount,
-		})
+		result = append(result, p.convertProductEntityToResponse(product))
 	}
 
 	return GetProductsResponse{
@@ -175,6 +172,32 @@ func (p *Product) convertProductsToGetProductsResponse(
 			Limit:  limit,
 			Offset: offset,
 			Total:  total,
+		},
+	}
+}
+
+func (p *Product) convertProductToProductDetailResponse(
+	product entity.Product,
+	seller entity.User,
+	productSoldTotal int,
+	bankAccounts []entity.Bank,
+) GetProductDetailResponse {
+	bankAccountsResponse := []Bank{}
+	for _, bank := range bankAccounts {
+		bankAccountsResponse = append(bankAccountsResponse, Bank{
+			BankAccountId:     bank.Id,
+			BankName:          bank.BankName,
+			BankAccountName:   bank.BankAccountName,
+			BankAccountNumber: bank.BankAccountNumber,
+		})
+	}
+
+	return GetProductDetailResponse{
+		Product: p.convertProductEntityToResponse(product),
+		SellerData: SellerData{
+			Name:             seller.Name,
+			ProductSoldTotal: productSoldTotal,
+			BankAccounts:     bankAccountsResponse,
 		},
 	}
 }
@@ -254,7 +277,40 @@ func (p *Product) GetProducts(c *fiber.Ctx) error {
 		"message": "ok",
 		"data":    result,
 	})
+}
 
+func (p *Product) GetProductDetail(c *fiber.Ctx) error {
+	productID, err := strconv.Atoi(c.Params("id"))
+	if err != nil {
+		return p.handleError(c, errors.New("failed parse product id"))
+	}
+
+	product, err := p.Database.FindByID(c.UserContext(), productID)
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	user, err := p.UserDatabase.GetUserById(c.UserContext(), strconv.Itoa(product.UserID))
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	productSoldTotal, err := p.Database.SumPurchaseCountByUserID(c.UserContext(), product.UserID)
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	bankAccounts, err := p.BankDatabase.Get(c.UserContext(), strconv.Itoa(product.UserID))
+	if err != nil {
+		return p.handleError(c, err)
+	}
+
+	result := p.convertProductToProductDetailResponse(product, user, productSoldTotal, bankAccounts)
+
+	return c.Status(http.StatusOK).JSON(map[string]interface{}{
+		"message": "ok",
+		"data":    result,
+	})
 }
 
 func (p *Product) BuyProduct(c *fiber.Ctx) error {
@@ -374,7 +430,6 @@ func (p *Product) AddProduct(c *fiber.Ctx) error {
 		"message": "product created successfully",
 		"data":    result,
 	})
-
 }
 
 func (p *Product) UpdateProduct(c *fiber.Ctx) error {
@@ -404,7 +459,7 @@ func (p *Product) UpdateProduct(c *fiber.Ctx) error {
 		return p.handleError(c, errors.New("failed parse product id"))
 	}
 
-	_, err = p.Database.FindByIDUser(c.UserContext(), productID, userID)
+	product, err := p.Database.FindByIDUser(c.UserContext(), productID, userID)
 	if err != nil {
 		if err == functions.ErrNoRow {
 			return p.handleError(c, fiber.ErrForbidden)
@@ -412,18 +467,15 @@ func (p *Product) UpdateProduct(c *fiber.Ctx) error {
 		return p.handleError(c, err)
 	}
 
-	product, err := p.Database.Update(c.UserContext(), entity.Product{
-		ID:             productID,
-		UserID:         userID,
-		Name:           payload.Name,
-		Price:          payload.Price,
-		ImageUrl:       payload.ImageURL,
-		Stock:          payload.Stock,
-		Condition:      payload.Condition,
-		Tags:           payload.Tags,
-		IsPurchaseable: payload.IsPurchaseable,
-	})
+	product.Name = payload.Name
+	product.Price = payload.Price
+	product.ImageUrl = payload.ImageURL
+	product.Stock = payload.Stock
+	product.Condition = payload.Condition
+	product.Tags = payload.Tags
+	product.IsPurchaseable = payload.IsPurchaseable
 
+	err = p.Database.Update(c.UserContext(), product)
 	if err != nil {
 		return p.handleError(c, err)
 	}
@@ -518,5 +570,4 @@ func (p *Product) DeleteProduct(c *fiber.Ctx) error {
 	return c.Status(http.StatusOK).JSON(map[string]interface{}{
 		"message": "product deleted successfully",
 	})
-
 }
