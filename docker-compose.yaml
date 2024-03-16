@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  shopifyx:
-    container_name: shopifyx
+  postgres:
+    container_name: postgres
     image: postgres:15
     ports:
       - "5432:5432"
@@ -10,6 +10,8 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
+    networks:
+      - shopifyx-net
 
   prometheus:
     container_name: prometheus
@@ -20,6 +22,8 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     environment:
       - PROMETHEUS_ADDRESS=${PROMETHEUS_ADDRESS}
+    networks:
+      - shopifyx-net
 
   grafana:
     container_name: grafana
@@ -28,6 +32,8 @@ services:
       - "3000:3000"
     volumes:
       - grafana-storage:/var/lib/grafana
+    networks:
+      - shopifyx-net
 
   shopifyx_server:
     build:
@@ -39,7 +45,7 @@ services:
     environment:
       - DB_NAME=${DB_NAME}
       - DB_PORT=${DB_PORT}
-      - DB_HOST="${DB_HOST}"
+      - DB_HOST=${DB_HOST}
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
       - PROMETHEUS_ADDRESS=${PROMETHEUS_ADDRESS}
@@ -47,6 +53,11 @@ services:
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_BASE_URL=${S3_BASE_URL}
       # Add other environment variables as needed
+    networks:
+      - shopifyx-net
 
 volumes:
   grafana-storage:
+
+networks:
+  shopifyx-net:
