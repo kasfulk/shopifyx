@@ -1,8 +1,63 @@
+version: '3.8'
+
 services:
-  shopifyx:
-    container_name: shopifyx
+  postgres:
+    container_name: postgres
     image: postgres:15
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    networks:
+      - shopifyx-net
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    environment:
+      - PROMETHEUS_ADDRESS=${PROMETHEUS_ADDRESS}
+    networks:
+      - shopifyx-net
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - shopifyx-net
+
+  shopifyx_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopifyx_server
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+      - DB_HOST=${DB_HOST}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - PROMETHEUS_ADDRESS=${PROMETHEUS_ADDRESS}
+      - S3_ID=${S3_ID}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_BASE_URL=${S3_BASE_URL}
+      # Add other environment variables as needed
+    networks:
+      - shopifyx-net
+
+volumes:
+  grafana-storage:
+
+networks:
+  shopifyx-net:
