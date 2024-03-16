@@ -14,6 +14,7 @@ type Config struct {
 	DbPassword string
 
 	APPPort string
+	ENV     string
 
 	PrometheusAddress string
 
@@ -34,6 +35,7 @@ func LoadConfig() (Config, error) {
 		DbPassword: os.Getenv("DB_PASSWORD"),
 
 		APPPort: os.Getenv("APP_PORT"),
+		ENV:     os.Getenv("ENV"),
 
 		PrometheusAddress: os.Getenv("PROMETHEUS_ADDRESS"),
 
