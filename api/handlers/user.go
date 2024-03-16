@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"net/http"
 	"shopifyx/api/responses"
 	"shopifyx/db/entity"
 	"shopifyx/db/functions"
@@ -68,7 +69,7 @@ func (u *User) Register(ctx *fiber.Ctx) error {
 		Password string `json:"password"`
 	}
 	if err := ctx.BodyParser(&req); err != nil {
-		return err
+		return ctx.SendStatus(http.StatusBadRequest)
 	}
 
 	// Validate request body

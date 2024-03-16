@@ -322,7 +322,7 @@ func (p *Product) BuyProduct(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&payload); err != nil {
 		return c.
-			Status(http.StatusInternalServerError).
+			Status(http.StatusBadRequest).
 			JSON(fmt.Sprintf("failed parse payload: %v", err.Error()))
 	}
 
@@ -401,7 +401,7 @@ func (p *Product) AddProduct(c *fiber.Ctx) error {
 
 	var payload ProductPayload
 	if err := c.BodyParser(&payload); err != nil {
-		return p.handleError(c, errors.New(fmt.Sprintf("failed parse payload: %v", err.Error())))
+		return c.SendStatus(http.StatusBadRequest)
 	}
 
 	err = payload.Validate()
@@ -446,7 +446,7 @@ func (p *Product) UpdateProduct(c *fiber.Ctx) error {
 
 	var payload ProductPayload
 	if err := c.BodyParser(&payload); err != nil {
-		return p.handleError(c, errors.New(fmt.Sprintf("failed parse payload: %v", err.Error())))
+		return c.SendStatus(http.StatusBadRequest)
 	}
 
 	err = payload.Validate()

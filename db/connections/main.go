@@ -3,6 +3,7 @@ package connections
 import (
 	"context"
 	"fmt"
+	"os"
 	"shopifyx/configs"
 	"time"
 
@@ -11,12 +12,13 @@ import (
 
 func NewPgConn(config configs.Config) (*pgxpool.Pool, error) {
 	ctx := context.Background()
+
 	var dsn string
 
-	if config.ENV != "production" {
-		dsn = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", config.DbUsername, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
+	if os.Getenv("ENV") == "production" {
+		dsn = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=verify-full&sslrootcert=ap-southeast-1-bundle.pem", config.DbUsername, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
 	} else {
-		dsn = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=verify-full&sslrootcert=ap-southeast-1-bundle.pem&timezone=UTC", config.DbUsername, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
+		dsn = fmt.Sprintf("postgres://%s:%s@%s:%s/%s", config.DbUsername, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
 	}
 
 	dbconfig, err := pgxpool.ParseConfig(dsn)
