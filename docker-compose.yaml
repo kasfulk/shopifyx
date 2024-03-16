@@ -35,7 +35,7 @@ services:
       dockerfile: Dockerfile
     container_name: shopifyx_server
     ports:
-      - "8080:8080"
+      - "8000:8000"
     environment:
       - DB_NAME=${DB_NAME}
       - DB_PORT=${DB_PORT}
